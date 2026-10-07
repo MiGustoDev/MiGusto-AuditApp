@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Auditoría Mi Gusto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: planilla de recorrida en una columna, marcador fijo arriba, segmentos plegables, resumen al final */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --fg: #1c2230;
+  --muted: #5c6577;
+  --line: #d8dce4;
+  --accent: #a8321f;
+  --accent-soft: #f6e3df;
+  --ok: #1f7a4a;
+  --ok-soft: #dcf1e5;
+  --warn: #9a6200;
+  --warn-soft: #fbedd2;
+  --bad: #b3261e;
+  --bad-soft: #fbe1df;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --surface: #1b1f29; --surface-2: #252a36; --fg: #e8ebf1; --muted: #9aa3b5; --line: #323848;
+    --accent: #f0806a; --accent-soft: #3a2420;
+    --ok: #5fd193; --ok-soft: #173326; --warn: #f2bd5a; --warn-soft: #3a2d14; --bad: #ff8a80; --bad-soft: #3d1f1d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --surface: #1b1f29; --surface-2: #252a36; --fg: #e8ebf1; --muted: #9aa3b5; --line: #323848;
+  --accent: #f0806a; --accent-soft: #3a2420;
+  --ok: #5fd193; --ok-soft: #173326; --warn: #f2bd5a; --warn-soft: #3a2d14; --bad: #ff8a80; --bad-soft: #3d1f1d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.4; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px; }
+.num { font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Marcador */
+.board { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); padding-block: 10px 8px; border-bottom: 1px solid var(--line); margin-inline: -16px; padding-inline: 16px; }
+.board-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.score { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; line-height: 1; letter-spacing: .01em; }
+.score small { font-size: 1.1rem; color: var(--muted); font-weight: 600; }
+.pill { font-family: var(--font-display); font-weight: 700; font-size: 1rem; letter-spacing: .06em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.idle { background: var(--surface-2); color: var(--muted); }
+.board-meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: .85rem; color: var(--muted); margin-top: 6px; }
+.bar { position: relative; height: 8px; background: var(--surface-2); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.bar > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); width: 0; transition: width .2s; }
+.bar .mark { position: absolute; top: 0; bottom: 0; left: 85%; width: 2px; background: var(--fg); opacity: .55; }
+.jump { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; padding-bottom: 2px; scrollbar-width: none; }
+.jump::-webkit-scrollbar { display: none; }
+.jump a { flex: none; text-decoration: none; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: .82rem; font-weight: 600; }
+.jump a.done { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; margin: 18px 0 2px; text-wrap: balance; letter-spacing: .01em; }
+.lead { color: var(--muted); margin: 0 0 14px; font-size: .95rem; }
+
+/* Datos generales */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fields label { display: grid; gap: 4px; font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.fields input { font: inherit; font-size: 1rem; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); min-width: 0; width: 100%; }
+
+/* Segmentos */
+details.seg { margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; scroll-margin-top: 150px; }
+details.seg > summary { list-style: none; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 12px 14px; cursor: pointer; }
+details.seg > summary::-webkit-details-marker { display: none; }
+.seg-title { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; letter-spacing: .02em; text-transform: uppercase; line-height: 1.15; }
+.seg-score { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; text-align: right; }
+.seg-sub { font-size: .82rem; color: var(--muted); }
+.seg-pct { font-size: .82rem; text-align: right; font-weight: 600; }
+.seg-tools { display: flex; justify-content: flex-end; padding: 0 14px 10px; border-bottom: 1px solid var(--line); }
+.linkbtn { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: .88rem; padding: 4px 0; }
+
+.item { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.item:last-child { border-bottom: 0; }
+.item.s-ok { box-shadow: inset 4px 0 0 var(--ok); }
+.item.s-partial { box-shadow: inset 4px 0 0 var(--warn); }
+.item.s-no { box-shadow: inset 4px 0 0 var(--bad); }
+.item-top { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
+.item-text { font-size: .98rem; min-width: 0; }
+.item-text b { color: var(--muted); font-weight: 600; margin-right: 4px; }
+.pts { font-family: var(--font-display); font-weight: 700; font-size: 1rem; background: var(--surface-2); padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.pts.big { background: var(--accent-soft); color: var(--accent); }
+.choices { display: grid; grid-template-columns: repeat(3, 1fr) 48px; gap: 6px; }
+.choices.nocam { grid-template-columns: repeat(3, 1fr); }
+.choices .cam { display: grid; place-items: center; padding: 0; color: var(--muted); position: relative; }
+.choices .cam svg { width: 22px; height: 22px; }
+.choices .cam .badge { position: absolute; top: -6px; right: -6px; background: var(--accent); color: var(--surface); font-size: .7rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; }
+.photos { display: flex; gap: 8px; flex-wrap: wrap; }
+.photo { position: relative; width: 76px; height: 76px; border-radius: 8px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--line); flex: none; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo button { position: absolute; top: 2px; right: 2px; width: 26px; height: 26px; border-radius: 13px; border: 0; background: var(--fg); color: var(--bg); font-weight: 700; line-height: 1; opacity: .85; }
+.photo.loading { display: grid; place-items: center; font-size: .75rem; color: var(--muted); }
+.photo a { display: block; width: 100%; height: 100%; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.gallery figure { margin: 0; display: grid; gap: 4px; min-width: 0; }
+.gallery a { display: block; aspect-ratio: 1; max-width: 100%; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+.gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery figcaption { font-size: .75rem; color: var(--muted); }
+.choices button { min-height: 44px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px; font-weight: 700; font-size: .95rem; }
+.choices button[aria-pressed="true"].c-ok { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.choices button[aria-pressed="true"].c-partial { background: var(--warn); border-color: var(--warn); color: var(--surface); }
+.choices button[aria-pressed="true"].c-no { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.extra { display: grid; gap: 8px; }
+.partial-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); }
+.partial-row input { width: 90px; font: inherit; font-size: 1rem; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
+.step { border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; width: 40px; height: 40px; font-weight: 700; font-size: 1.1rem; }
+textarea { font: inherit; font-size: .95rem; width: 100%; min-height: 60px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); resize: vertical; }
+
+/* Resumen */
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: .02em; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+tfoot td { font-weight: 700; border-bottom: 0; font-size: 1rem; }
+.verdict { margin-top: 14px; padding: 16px; border-radius: 12px; display: grid; gap: 4px; }
+.verdict.ok { background: var(--ok-soft); color: var(--ok); }
+.verdict.bad { background: var(--bad-soft); color: var(--bad); }
+.verdict.warn { background: var(--warn-soft); color: var(--warn); }
+.verdict.idle { background: var(--surface-2); color: var(--muted); }
+.verdict strong { font-family: var(--font-display); font-size: 1.6rem; letter-spacing: .03em; text-transform: uppercase; }
+.devs { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; font-size: .93rem; }
+.devs .sm { color: var(--muted); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.btn { border: 0; border-radius: 10px; padding: 12px 16px; font-weight: 700; background: var(--accent); color: var(--surface); min-height: 44px; }
+.btn.ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--line); }
+.btn.danger { background: var(--bad); }
+.toast { font-size: .95rem; color: var(--ok); font-weight: 600; margin: 10px 0 0; min-height: 1.3em; }
+.toast.err { color: var(--bad); }
+.note { font-size: .9rem; color: var(--muted); margin: 8px 0 0; }
+.access { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--warn-soft); color: var(--warn); font-size: .92rem; display: grid; gap: 4px; }
+.access strong { font-size: 1rem; }
+.hist-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.hist-tools input { flex: 1 1 220px; min-width: 0; font: inherit; font-size: 1rem; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }
+.hist-count { font-size: .85rem; color: var(--muted); }
+#histList { display: grid; gap: 8px; margin-top: 10px; }
+details.rec { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+details.rec > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 12px 14px; align-items: center; }
+details.rec > summary::-webkit-details-marker { display: none; }
+.rec-store { font-weight: 700; font-size: 1rem; min-width: 0; overflow-wrap: anywhere; }
+.rec-meta { font-size: .82rem; color: var(--muted); min-width: 0; }
+.rec-score { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; text-align: right; }
+.rec-body { padding: 0 14px 14px; display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.rec-body .actions { margin-top: 0; }
+.btn.sm { padding: 8px 12px; min-height: 40px; font-size: .9rem; }
+#copyBox { width: 100%; min-height: 160px; margin-top: 10px; font-size: .85rem; }
+@media (prefers-reduced-motion: reduce) { .bar > span { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="board" id="board">
+    <div class="board-row">
+      <div class="score num"><span id="scoreNow">0.00</span> <small>/ 100</small></div>
+      <span class="pill idle" id="statusPill">Sin empezar</span>
+    </div>
+    <div class="bar" aria-hidden="true"><span id="scoreBar"></span><i class="mark"></i></div>
+    <div class="board-meta num">
+      <span id="progressTxt">0 de 62 ítems</span>
+      <span id="maxTxt">Máximo posible: 100</span>
+    </div>
+    <nav class="jump" id="jump" aria-label="Ir a segmento"></nav>
+  </div>
+
+  <div class="access" id="accessBanner" role="status" hidden></div>
+  <h1>Auditoría operativa Mi Gusto</h1>
+  <p class="lead">9 segmentos · 100 puntos · aprueba con 85 o más. Tocá Cumple, Parcial o No en cada ítem y el puntaje se suma solo.</p>
+
+  <section class="card" aria-label="Datos generales">
+    <div class="fields">
+      <label for="f_tienda">Tienda<input id="f_tienda" type="text" autocomplete="off"></label>
+      <label for="f_auditor">Auditor/a<input id="f_auditor" type="text" autocomplete="name"></label>
+      <label for="f_fecha">Fecha<input id="f_fecha" type="date"></label>
+      <label for="f_colab">Colaboradores<input id="f_colab" type="number" inputmode="numeric" min="0"></label>
+      <label for="f_cargo">Personal a cargo<input id="f_cargo" type="text" autocomplete="off"></label>
+      <label for="f_unid">Unidades vendidas<input id="f_unid" type="number" inputmode="numeric" min="0"></label>
+    </div>
+  </section>
+
+  <div id="segments"></div>
+
+  <h2 id="resumen">Resumen por segmento</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Segmento</th><th>Ideal</th><th>Real</th><th>%</th></tr></thead>
+      <tbody id="sumBody"></tbody>
+      <tfoot><tr><td>Total</td><td>100.00</td><td id="sumTotal">0.00</td><td id="sumPct">0.0%</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="verdict idle" id="verdict"><strong id="verdictTitle">Auditoría incompleta</strong><span id="verdictTxt">Faltan ítems por evaluar.</span></div>
+
+  <h2>Desvíos</h2>
+  <ol class="devs" id="devs"><li class="sm">Todavía no hay ítems marcados como Parcial o No.</li></ol>
+
+  <div class="actions">
+    <button class="btn" id="saveBtn" type="button">Guardar auditoría</button>
+    <button class="btn ghost" id="copyBtn" type="button">Copiar resumen</button>
+    <button class="btn ghost" id="dlBtn" type="button" hidden>Descargar resumen</button>
+    <button class="btn ghost" id="resetBtn" type="button">Nueva auditoría</button>
+    <button class="btn danger" id="resetYes" type="button" hidden>Sí, borrar todo</button>
+    <button class="btn ghost" id="resetNo" type="button" hidden>Cancelar</button>
+  </div>
+  <p class="toast" id="toast" role="status"></p>
+  <p class="note" id="saveNote" hidden></p>
+  <textarea id="copyBox" hidden readonly aria-label="Resumen para copiar"></textarea>
+
+  <h2 id="historial">Auditorías guardadas</h2>
+  <div class="hist-tools">
+    <input id="histFilter" type="search" placeholder="Buscar por tienda o auditor" aria-label="Buscar en auditorías guardadas">
+    <span class="hist-count num" id="histCount"></span>
+  </div>
+  <div id="histList"><p class="note" id="histEmpty">Cargando auditorías guardadas…</p></div>
+</div>
+
+<script>
+const SEGMENTS = [
+  { name: "Experiencia del cliente e imagen", short: "Cliente", items: [
+    [0.5, "Exterior e interior, incluidos los vidrios, limpios, sin residuos ni elementos que afecten la imagen de ingreso."],
+    [0.5, "Marquesina, fachada e iluminación exterior operativas y en buen estado, sin roturas, humedad ni pintura deteriorada."],
+    [0.5, "Menú, pantallas, cartelería y comunicación comercial actualizados, limpios y alineados a la marca, sin cartelería informal."],
+    [0.5, "Ambientación general, música y elementos POP disponibles y dentro del estándar del formato de tienda."],
+    [2, "El equipo brinda bienvenida, despedida y atención con actitud amable, cordial y orientada al cliente."],
+    [1, "El equipo conoce el producto y las promociones vigentes, y aplica venta sugestiva cuando corresponde."],
+    [2, "El tiempo de espera del cliente se mantiene dentro del estándar operativo de la marca."],
+    [2, "Delivery propio y apps externas con tiempos adecuados. Todo pedido sale en bolsa de delivery cerrada e identificada."],
+    [1, "Teléfonos, comanderos y dispositivos de gestión y despacho de pedidos disponibles, limpios y operativos."]
+  ]},
+  { name: "Calidad del producto y ejecución operativa", short: "Producto", items: [
+    [0.25, "Estaciones de Envía y Retira completas, ordenadas y preparadas para operar."],
+    [0.25, "En Retira, toppings disponibles, bien preparados/cortados, conservados y rotulados según el proceso vigente."],
+    [0.75, "Calidad final de empanadas cerradas y abiertas: cocción, pintado/cobertura, gratinado y presentación."],
+    [0.25, "Presentación y empaque final según estándar: caja, parafinado, servilletas, etiquetas y cierre."],
+    [0.75, "Proceso de pizzas según procedimiento vigente: elaboración, cocción y corte."],
+    [10, "Empanadas y pizzas con rótulo primario de vencimiento bien colocado y dentro del rango de fecha."],
+    [0.5, "Todas las bebidas dentro de su fecha de vencimiento y con envases íntegros."],
+    [0.5, "Mangas y dips: conservación, rotulación, fecha de elaboración/apertura y vencimiento."],
+    [0.25, "Dips de criolla con gramaje de 30 g y rotulados con fecha de vencimiento."],
+    [0.25, "Jamón con gramaje de 21 a 23 g. Feteado y horma con rótulo vigente."],
+    [0.25, "Pepperoni con gramaje de 1 a 3 g. Feteado y horma con rótulo vigente."],
+    [0.5, "Verduras sanitizadas y almacenadas, en condiciones de calidad y con rótulo de ingreso."],
+    [0.5, "Solo productos y proveedores autorizados; todos los insumos con identificación y trazabilidad."]
+  ]},
+  { name: "Seguridad alimentaria", short: "Seguridad", items: [
+    [2.5, "Registro diario de temperatura de empanadas en crudo (0° a 5°) y cocidas (65°/85°) completo al inicio del turno."],
+    [2.5, "Registro diario de temperaturas de heladeras y freezer completo al inicio y cierre del turno."],
+    [2, "Lavado de manos correcto, con insumos disponibles y alarma de recordatorio activa."],
+    [2, "Uso correcto de cofia, delantal y guantes, con cambio de guantes cuando el proceso lo requiere."],
+    [1, "Guantes anticorte y de alta temperatura disponibles, limpios y en condiciones."],
+    [1.5, "Productos de limpieza identificados y guardados en forma segura; pulverizadores con rotulación vigente."],
+    [1.5, "Utensilios, cambros y tuppers lavados, sin residuos y guardados en orden, sin riesgo de contaminación."],
+    [2, "Sin plagas ni indicios de insectos o roedores en elaboración, almacenamiento o atención."]
+  ]},
+  { name: "Limpieza e higiene", short: "Limpieza", items: [
+    [3, "Horno limpio en su interior, exterior y cintas."],
+    [2, "Feteadora limpia y sin restos de fiambres, incluido el sector del filo."],
+    [2, "Bandejas de cocción de empanadas y carros transportadores limpios y en condiciones."],
+    [1.5, "Escobas y palas limpias, en buen estado, bien guardadas y sin suciedad acumulada."],
+    [1.5, "Tachos de basura limpios, con abertura en la tapa y/o tapa vaivén."],
+    [2.5, "Baños en óptimas condiciones de limpieza y con sus insumos disponibles."],
+    [2.5, "Estaciones de trabajo (Envía, Retira y Pizza) limpias, sin restos de adhesivos ni suciedad acumulada."],
+    [3, "Heladeras y freezers limpios por dentro y por fuera, sectorizados y con guías/pisos higiénicos."],
+    [2, "Azulejos de la tienda limpios y sin marcas visibles."]
+  ]},
+  { name: "Mantenimiento e infraestructura", short: "Mantenimiento", items: [
+    [2.5, "Tableros, enchufes y cableado en buen estado, bien instalados e identificados."],
+    [2, "Burletes y manijas de heladeras en óptimas condiciones."],
+    [2.5, "Bachas en buen estado, funcionando, con buen desagüe y sin pérdidas de agua."],
+    [2, "Iluminación general adecuada, sin luminarias quemadas."],
+    [2, "Luces de emergencia instaladas y funcionando."],
+    [2, "Sistemas de inyección y extracción funcionando correctamente."],
+    [4.5, "Todos los hornos funcionan correctamente."],
+    [2.5, "Pisos, paredes y azulejos en buen estado, sin humedad ni pintura descascarada."]
+  ]},
+  { name: "Gestión operativa y KPIs", short: "KPIs", items: [
+    [1.5, "Vendor Late del período dentro del objetivo: ≤ 8%."],
+    [1.5, "Inaccuracy del período dentro del objetivo: ≤ 2%."],
+    [2, "Reclamos acumulados del mes anterior no superan el 2% del total de la venta."]
+  ]},
+  { name: "Administración", short: "Administración", items: [
+    [1, "Habilitación vigente y exhibida."],
+    [0.75, "Formulario 960 actualizado."],
+    [0.75, "Constancia de inscripción ARCA e IIBB vigente."],
+    [1, "Talonarios/comprobantes de facturación A y B manual vigentes."],
+    [0.75, "Certificados de fumigación, análisis de agua y limpieza de campana vigentes y disponibles."],
+    [0.75, "Todos los colaboradores con curso de manipulación de alimentos o libreta sanitaria, según corresponda."],
+    [0.5, "Botiquín completo: gasas, curitas, algodón, agua oxigenada, Pervinox, tijera, Platsul y guantes. Sin medicamentos."],
+    [0.5, "Matafuegos reglamentados, señalizados y vigentes."]
+  ]},
+  { name: "RRHH e imagen del equipo", short: "RRHH", items: [
+    [3.5, "Gerente y colaboradores con imagen personal de marca: uniforme completo y en buen estado, higiene, cabello recogido y sin bijouterie."],
+    [3.5, "Carpeta de legajos actualizada con la documentación definida por la compañía."]
+  ]},
+  { name: "Bodega", short: "Bodega", items: [
+    [1.5, "Bodega ordenada y sectorizada; cajas e insumos fuera del piso, paquetes abiertos protegidos y sistema PEPS respetado."],
+    [0.5, "Rótulos aprobados por la marca disponibles para la operación."]
+  ]}
+];
+const PASS = 85;
+const TOTAL_ITEMS = SEGMENTS.reduce((n, s) => n + s.items.length, 0);
+const KEY = "auditoria-mi-gusto-v1";
+const FIELDS = ["f_tienda", "f_auditor", "f_fecha", "f_colab", "f_cargo", "f_unid"];
+const $ = id => document.getElementById(id);
+const f2 = n => (Math.round(n * 100) / 100).toFixed(2);
+const fmtPts = n => (Number.isInteger(n) ? n : f2(n).replace(/0$/, "")) + (n === 1 ? " pt" : " pts");
+
+let state = { answers: {}, fields: {}, photos: {} }; // answers[key] = { s:'ok'|'partial'|'no', v:number, o:string }
+
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) state = Object.assign({ answers: {}, fields: {}, photos: {} }, JSON.parse(raw)); } catch (e) {}
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+function scoreOf(a, ideal) {
+  if (!a) return 0;
+  if (a.s === "ok") return ideal;
+  if (a.s === "no") return 0;
+  return Math.min(ideal, Math.max(0, Number(a.v) || 0));
+}
+
+function build() {
+  const segWrap = $("segments"), jump = $("jump");
+  SEGMENTS.forEach((seg, si) => {
+    const ideal = seg.items.reduce((t, it) => t + it[0], 0);
+    seg.ideal = ideal;
+    const d = document.createElement("details");
+    d.className = "seg"; d.id = "seg" + (si + 1); d.open = si === 0;
+    d.innerHTML = `<summary>
+        <span class="seg-title">${si + 1}. ${seg.name}</span>
+        <span class="seg-score num"><span data-segreal="${si}">0.00</span> / ${f2(ideal)}</span>
+        <span class="seg-sub num" data-segprog="${si}">0 de ${seg.items.length} ítems</span>
+        <span class="seg-pct num" data-segpct="${si}">0%</span>
+      </summary>
+      <div class="seg-tools"><button type="button" class="linkbtn" data-allok="${si}">Marcar los pendientes como Cumple</button></div>`;
+    seg.items.forEach((it, ii) => {
+      const k = si + "-" + ii, n = (si + 1) + "." + (ii + 1);
+      const row = document.createElement("div");
+      row.className = "item"; row.dataset.key = k;
+      row.innerHTML = `<div class="item-top">
+          <div class="item-text"><b>${n}</b>${it[1]}</div>
+          <span class="pts num${it[0] >= 4 ? " big" : ""}">${fmtPts(it[0])}</span>
+        </div>
+        <div class="choices" role="group" aria-label="Resultado ${n}">
+          <button type="button" class="c-ok" data-s="ok" aria-pressed="false">✓ Cumple</button>
+          <button type="button" class="c-partial" data-s="partial" aria-pressed="false">Parcial</button>
+          <button type="button" class="c-no" data-s="no" aria-pressed="false">✗ No</button>
+          <button type="button" class="cam" data-cam aria-label="Agregar foto al ítem ${n}" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="badge" hidden>0</span></button>
+          <input type="file" id="p_${k}" class="sr-only" accept="image/*" multiple tabindex="-1" aria-hidden="true">
+        </div>
+        <div class="photos" hidden></div>
+        <div class="extra" hidden>
+          <div class="partial-row" hidden>
+            <button type="button" class="step" data-step="-0.25" aria-label="Restar 0,25">−</button>
+            <input id="v_${k}" type="number" inputmode="decimal" step="0.25" min="0" max="${it[0]}" aria-label="Puntaje real ${n}">
+            <button type="button" class="step" data-step="0.25" aria-label="Sumar 0,25">+</button>
+            <span>de ${fmtPts(it[0])}</span>
+          </div>
+          <textarea id="o_${k}" placeholder="Observación (qué se vio, qué falta)" aria-label="Observación ${n}"></textarea>
+        </div>`;
+      d.appendChild(row);
+    });
+    segWrap.appendChild(d);
+    const a = document.createElement("a");
+    a.href = "#seg" + (si + 1); a.textContent = (si + 1) + " " + seg.short; a.dataset.jump = si;
+    a.addEventListener("click", e => { e.preventDefault(); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); });
+    jump.appendChild(a);
+  });
+  const r = document.createElement("a");
+  r.href = "#resumen"; r.textContent = "Resumen";
+  r.addEventListener("click", e => { e.preventDefault(); $("resumen").scrollIntoView({ behavior: "smooth" }); });
+  jump.appendChild(r);
+}
+
+function paintItem(row) {
+  const k = row.dataset.key, [si, ii] = k.split("-").map(Number), ideal = SEGMENTS[si].items[ii][0];
+  const a = state.answers[k];
+  row.className = "item" + (a ? " s-" + a.s : "");
+  row.querySelectorAll(".choices button").forEach(b => b.setAttribute("aria-pressed", String(!!a && b.dataset.s === a.s)));
+  const extra = row.querySelector(".extra"), pr = row.querySelector(".partial-row");
+  const showExtra = !!a && a.s !== "ok" || !!(a && a.o);
+  extra.hidden = !showExtra;
+  pr.hidden = !(a && a.s === "partial");
+  const ids = (state.photos && state.photos[k]) || [], up = uploading[k] || 0;
+  const cam = row.querySelector("[data-cam]"), badge = cam.querySelector(".badge");
+  cam.hidden = !assetsApi; row.querySelector(".choices").classList.toggle("nocam", !assetsApi);
+  badge.hidden = !ids.length; badge.textContent = ids.length;
+  const strip = row.querySelector(".photos");
+  strip.hidden = !ids.length && !up;
+  strip.innerHTML = ids.map(id => `<div class="photo"><a href="/_blob/${id}" target="_blank" rel="noopener"><img src="/_blob/${id}" alt="Foto del ítem" loading="lazy"></a><button type="button" data-rmphoto="${id}" aria-label="Quitar foto">×</button></div>`).join("")
+    + Array.from({ length: up }, () => `<div class="photo loading">Subiendo…</div>`).join("");
+  const vi = row.querySelector(".partial-row input"), oi = row.querySelector("textarea");
+  if (a && a.s === "partial" && document.activeElement !== vi) vi.value = a.v;
+  if (document.activeElement !== oi) oi.value = (a && a.o) || "";
+}
+
+function recalc() {
+  let total = 0, done = 0, pendingIdeal = 0;
+  const rows = [], devs = [];
+  SEGMENTS.forEach((seg, si) => {
+    let real = 0, segDone = 0;
+    seg.items.forEach((it, ii) => {
+      const k = si + "-" + ii, a = state.answers[k];
+      if (a) { segDone++; real += scoreOf(a, it[0]); if (a.s !== "ok") devs.push({ k, n: (si + 1) + "." + (ii + 1), t: it[1], a, ideal: it[0], got: scoreOf(a, it[0]) }); }
+      else pendingIdeal += it[0];
+    });
+    total += real; done += segDone;
+    const pct = seg.ideal ? real / seg.ideal * 100 : 0;
+    document.querySelector(`[data-segreal="${si}"]`).textContent = f2(real);
+    document.querySelector(`[data-segprog="${si}"]`).textContent = `${segDone} de ${seg.items.length} ítems`;
+    const pe = document.querySelector(`[data-segpct="${si}"]`);
+    pe.textContent = segDone ? pct.toFixed(0) + "%" : "–";
+    pe.style.color = !segDone ? "var(--muted)" : pct >= PASS ? "var(--ok)" : pct >= 60 ? "var(--warn)" : "var(--bad)";
+    document.querySelector(`[data-jump="${si}"]`).classList.toggle("done", segDone === seg.items.length);
+    rows.push({ seg, si, real, pct, segDone });
+  });
+  const max = total + pendingIdeal, complete = done === TOTAL_ITEMS;
+  $("scoreNow").textContent = f2(total);
+  $("scoreBar").style.width = Math.min(100, total) + "%";
+  $("progressTxt").textContent = `${done} de ${TOTAL_ITEMS} ítems`;
+  $("maxTxt").textContent = complete ? "Auditoría completa" : `Máximo posible: ${f2(max)}`;
+
+  let cls, label, title, txt;
+  if (done === 0) { cls = "idle"; label = "Sin empezar"; title = "Auditoría incompleta"; txt = "Faltan ítems por evaluar."; }
+  else if (complete) {
+    if (total >= PASS) { cls = "ok"; label = "Aprobada"; title = "Aprobada"; txt = `${f2(total)} puntos sobre 100. Supera el mínimo de ${PASS}.`; }
+    else { cls = "bad"; label = "No aprobada"; title = "No aprobada"; txt = `${f2(total)} puntos sobre 100. Le faltan ${f2(PASS - total)} para llegar a ${PASS}.`; }
+  } else if (max < PASS) { cls = "bad"; label = "No llega a 85"; title = "No aprueba"; txt = `Aunque cumpla todo lo pendiente, el máximo posible es ${f2(max)}. Faltan ${TOTAL_ITEMS - done} ítems.`; }
+  else if (total >= PASS) { cls = "ok"; label = "Ya aprueba"; title = "Aprobación asegurada"; txt = `Ya suma ${f2(total)}. Faltan ${TOTAL_ITEMS - done} ítems para cerrar la auditoría.`; }
+  else { cls = "warn"; label = "En curso"; title = "En curso"; txt = `Suma ${f2(total)}. Puede perder hasta ${f2(max - PASS)} puntos más y seguir aprobando. Faltan ${TOTAL_ITEMS - done} ítems.`; }
+  const pill = $("statusPill"); pill.className = "pill " + cls; pill.textContent = label;
+  $("verdict").className = "verdict " + cls; $("verdictTitle").textContent = title; $("verdictTxt").textContent = txt;
+
+  $("sumBody").innerHTML = rows.map(r => `<tr><td>${r.si + 1}. ${r.seg.name}</td><td>${f2(r.seg.ideal)}</td><td>${f2(r.real)}</td><td>${(r.real / r.seg.ideal * 100).toFixed(1)}%</td></tr>`).join("");
+  $("sumTotal").textContent = f2(total); $("sumPct").textContent = total.toFixed(1) + "%";
+
+  const dl = $("devs");
+  if (!devs.length) dl.innerHTML = `<li class="sm">Todavía no hay ítems marcados como Parcial o No.</li>`;
+  else {
+    dl.innerHTML = "";
+    devs.forEach(d => {
+      const li = document.createElement("li");
+      li.innerHTML = `<b>${d.n}</b> (${f2(d.got)} de ${f2(d.ideal)}) <span></span>${d.a.o ? `<div class="sm"></div>` : ""}`;
+      li.querySelector("span").textContent = d.t;
+      if (d.a.o) li.querySelector(".sm").textContent = "Obs.: " + d.a.o;
+      dl.appendChild(li);
+    });
+  }
+  state._devs = devs; state._rows = rows; state._total = total; state._label = complete ? title : label;
+}
+
+function persistAndRefresh() {
+  const { _devs, _rows, _total, _label, ...clean } = state;
+  try { localStorage.setItem(KEY, JSON.stringify(clean)); } catch (e) {}
+  recalc();
+}
+
+document.addEventListener("click", e => {
+  const choice = e.target.closest(".choices button");
+  if (choice) {
+    const row = choice.closest(".item"), k = row.dataset.key, [si, ii] = k.split("-").map(Number), ideal = SEGMENTS[si].items[ii][0];
+    const prev = state.answers[k], s = choice.dataset.s;
+    if (prev && prev.s === s) delete state.answers[k];
+    else state.answers[k] = { s, v: s === "partial" ? (prev && prev.s === "partial" ? prev.v : Math.round(ideal / 2 * 4) / 4) : undefined, o: prev ? prev.o || "" : "" };
+    paintItem(row); persistAndRefresh();
+    if (s !== "ok" && state.answers[k]) setTimeout(() => (s === "partial" ? row.querySelector(".partial-row input") : row.querySelector("textarea")).focus({ preventScroll: true }), 0);
+    return;
+  }
+  const step = e.target.closest(".step");
+  if (step) {
+    const row = step.closest(".item"), k = row.dataset.key, [si, ii] = k.split("-").map(Number), ideal = SEGMENTS[si].items[ii][0];
+    const a = state.answers[k]; if (!a) return;
+    a.v = Math.min(ideal, Math.max(0, Math.round(((Number(a.v) || 0) + Number(step.dataset.step)) * 100) / 100));
+    row.querySelector(".partial-row input").value = a.v; persistAndRefresh(); return;
+  }
+  const all = e.target.closest("[data-allok]");
+  if (all) {
+    const si = Number(all.dataset.allok);
+    SEGMENTS[si].items.forEach((it, ii) => { const k = si + "-" + ii; if (!state.answers[k]) state.answers[k] = { s: "ok", o: "" }; });
+    document.querySelectorAll(`#seg${si + 1} .item`).forEach(paintItem); persistAndRefresh();
+  }
+});
+document.addEventListener("input", e => {
+  if (e.target.type === "file") return;
+  const row = e.target.closest(".item");
+  if (row) {
+    const k = row.dataset.key, a = state.answers[k]; if (!a) return;
+    const [si, ii] = k.split("-").map(Number), ideal = SEGMENTS[si].items[ii][0];
+    if (e.target.matches(".partial-row input")) a.v = Math.min(ideal, Math.max(0, Number(e.target.value) || 0));
+    else a.o = e.target.value;
+    persistAndRefresh(); return;
+  }
+  if (FIELDS.includes(e.target.id)) { state.fields[e.target.id] = e.target.value; persistAndRefresh(); }
+});
+/* ---------- Fotos ---------- */
+const uploading = {};
+let assetsApi = null;
+function shrinkImage(file) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const MAX = 1600, scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => resolve(b && b.size < file.size ? b : file), "image/jpeg", 0.78);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+async function uploadPhotos(row, files) {
+  const k = row.dataset.key;
+  for (const file of files) {
+    uploading[k] = (uploading[k] || 0) + 1; paintItem(row);
+    try {
+      const blob = await shrinkImage(file);
+      const type = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(blob.type) ? blob.type : "image/jpeg";
+      const res = await assetsApi.upload(blob, { type });
+      state.photos = state.photos || {};
+      (state.photos[k] = state.photos[k] || []).push(res.id);
+      persistAndRefresh();
+    } catch (err) {
+      const c = err && err.code;
+      flash(c === "too_large" ? "La foto es demasiado pesada. Probá con otra." :
+            c === "unsupported_type" ? "Ese formato de imagen no se puede subir. Usá JPG o PNG." :
+            c === "quota_or_state" ? "Se llenó el espacio de fotos. Eliminá auditorías viejas del historial." :
+            c === "rate_limited" ? "Demasiadas fotos seguidas. Esperá unos segundos y probá de nuevo." :
+            "No se pudo subir la foto. Revisá la conexión y probá de nuevo.", true);
+    } finally { uploading[k]--; paintItem(row); }
+  }
+}
+document.addEventListener("click", e => {
+  const cam = e.target.closest("[data-cam]");
+  if (cam) { cam.closest(".item").querySelector('input[type="file"]').click(); return; }
+  const rm = e.target.closest("[data-rmphoto]");
+  if (rm) {
+    const row = rm.closest(".item"), k = row.dataset.key;
+    state.photos[k] = (state.photos[k] || []).filter(id => id !== rm.dataset.rmphoto);
+    if (!state.photos[k].length) delete state.photos[k];
+    paintItem(row); persistAndRefresh();
+  }
+});
+document.addEventListener("change", e => {
+  if (e.target.type === "file" && e.target.closest(".item")) {
+    const files = Array.from(e.target.files || []); e.target.value = "";
+    if (files.length && assetsApi) uploadPhotos(e.target.closest(".item"), files);
+  }
+});
+document.addEventListener("change", e => {
+  if (e.target.matches(".partial-row input")) { const row = e.target.closest(".item"); const a = state.answers[row.dataset.key]; if (a) e.target.value = a.v; }
+});
+
+function summaryText() {
+  const f = state.fields, lines = [];
+  lines.push("AUDITORÍA OPERATIVA MI GUSTO");
+  lines.push(`Tienda: ${f.f_tienda || "-"} | Fecha: ${f.f_fecha || "-"} | Auditor/a: ${f.f_auditor || "-"}`);
+  lines.push(`Colaboradores: ${f.f_colab || "-"} | Personal a cargo: ${f.f_cargo || "-"} | Unidades vendidas: ${f.f_unid || "-"}`);
+  lines.push("");
+  lines.push(`RESULTADO: ${f2(state._total)} / 100 → ${state._label.toUpperCase()} (aprueba con ${PASS})`);
+  lines.push("");
+  state._rows.forEach(r => lines.push(`${r.si + 1}. ${r.seg.name}: ${f2(r.real)} / ${f2(r.seg.ideal)} (${(r.real / r.seg.ideal * 100).toFixed(1)}%)`));
+  if (state._devs.length) {
+    lines.push(""); lines.push("DESVÍOS:");
+    state._devs.forEach(d => lines.push(`- ${d.n} (${f2(d.got)}/${f2(d.ideal)}) ${d.t}${d.a.o ? " — Obs.: " + d.a.o : ""}`));
+  }
+  const pend = TOTAL_ITEMS - Object.keys(state.answers).length;
+  if (pend) { lines.push(""); lines.push(`Ítems sin evaluar: ${pend}`); }
+  const nf = Object.values(state.photos || {}).reduce((t, a) => t + a.length, 0);
+  if (nf) lines.push(`Fotos adjuntas: ${nf} (ver en el historial de la planilla)`);
+  return lines.join("\n");
+}
+function flash(msg, err) { const t = $("toast"); t.textContent = msg; t.classList.toggle("err", !!err); clearTimeout(flash.t); flash.t = setTimeout(() => t.textContent = "", err ? 6000 : 3000); }
+async function copyText(txt) {
+  try { await navigator.clipboard.writeText(txt); flash("Resumen copiado"); $("copyBox").hidden = true; }
+  catch (e) { const box = $("copyBox"); box.hidden = false; box.value = txt; box.focus(); box.select(); flash("Seleccioná y copiá el texto de abajo"); }
+}
+$("copyBtn").addEventListener("click", () => copyText(summaryText()));
+$("resetBtn").addEventListener("click", () => { $("resetBtn").hidden = true; $("resetYes").hidden = false; $("resetNo").hidden = false; });
+$("resetNo").addEventListener("click", () => { $("resetBtn").hidden = false; $("resetYes").hidden = true; $("resetNo").hidden = true; });
+$("resetYes").addEventListener("click", () => {
+  state = { answers: {}, fields: { f_fecha: today() }, photos: {} };
+  FIELDS.forEach(id => $(id).value = state.fields[id] || "");
+  document.querySelectorAll(".item").forEach(paintItem);
+  $("copyBox").hidden = true;
+  $("resetNo").click(); persistAndRefresh(); flash("Auditoría nueva lista");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+function today() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+/* ---------- Guardado compartido ---------- */
+let db = null, userApi = null, myId = null, canWrite = null, isAdmin = false, records = [], saveArmed = false;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtDate = iso => { if (!iso) return "-"; const [y, m, d] = iso.split("-"); return d && m ? `${d}/${m}/${y}` : iso; };
+
+function setNote(msg) { const n = $("saveNote"); n.hidden = !msg; n.textContent = msg || ""; }
+
+function photoList() {
+  const out = [];
+  Object.keys(state.photos || {}).sort((a, b) => { const [a1, a2] = a.split("-").map(Number), [b1, b2] = b.split("-").map(Number); return a1 - b1 || a2 - b2; })
+    .forEach(k => { const [si, ii] = k.split("-").map(Number); (state.photos[k] || []).forEach(id => out.push({ n: (si + 1) + "." + (ii + 1), texto: SEGMENTS[si].items[ii][1], id })); });
+  return out;
+}
+function buildRecord() {
+  const f = state.fields, done = Object.keys(state.answers).length;
+  return {
+    tienda: (f.f_tienda || "").trim(), auditor: (f.f_auditor || "").trim(), fecha: f.f_fecha || "",
+    colaboradores: f.f_colab || "", personalACargo: f.f_cargo || "", unidades: f.f_unid || "",
+    total: Math.round(state._total * 100) / 100, estado: state._label,
+    completa: done === TOTAL_ITEMS, evaluados: done,
+    segmentos: state._rows.map(r => ({ n: r.si + 1, nombre: r.seg.name, ideal: r.seg.ideal, real: Math.round(r.real * 100) / 100 })),
+    desvios: state._devs.map(d => ({ n: d.n, texto: d.t, ideal: d.ideal, real: d.got, obs: d.a.o || "", fotos: (state.photos || {})[d.k] || [] })),
+    fotos: photoList(),
+    respuestas: state.answers,
+    resumen: summaryText(),
+    savedBy: myId || "", savedAt: new Date().toISOString()
+  };
+}
+
+$("saveBtn").addEventListener("click", async () => {
+  if (!db) { flash("Para guardar, abrí la página con tu cuenta de Claude iniciada.", true); return; }
+  if (canWrite === false) { flash("Tu acceso es solo de lectura. Pedile al dueño acceso de edición.", true); return; }
+  const f = state.fields;
+  if (!(f.f_tienda || "").trim()) { flash("Completá el nombre de la tienda antes de guardar.", true); $("f_tienda").focus(); return; }
+  if (Object.values(uploading).some(n => n > 0)) { flash("Esperá a que terminen de subir las fotos.", true); return; }
+  const pend = TOTAL_ITEMS - Object.keys(state.answers).length;
+  if (pend && !saveArmed) { saveArmed = true; $("saveBtn").textContent = `Guardar igual (faltan ${pend})`; return; }
+  saveArmed = false; $("saveBtn").textContent = "Guardando…"; $("saveBtn").disabled = true;
+  try {
+    await db.collection("audits").add(buildRecord());
+    flash(`Auditoría de ${f.f_tienda} guardada`);
+  } catch (e) {
+    if (e && e.code === "invalid_argument") { canWrite = false; flash("No tenés permiso para guardar. Pedile al dueño acceso de edición.", true); }
+    else if (e && e.code === "quota_exceeded") flash("Se llenó el espacio de guardado. Borrá auditorías viejas del historial.", true);
+    else flash("No se pudo guardar. Revisá la conexión y probá de nuevo.", true);
+  } finally { $("saveBtn").disabled = false; $("saveBtn").textContent = "Guardar auditoría"; }
+});
+
+function statusClass(r) { const s = (r.estado || "").toLowerCase(); return s.startsWith("no") ? "bad" : (s.includes("aprob") || s.includes("aprue")) ? "ok" : "warn"; }
+
+function renderHistory() {
+  const q = ($("histFilter").value || "").trim().toLowerCase();
+  const list = records.filter(r => !q || (r.tienda || "").toLowerCase().includes(q) || (r.auditor || "").toLowerCase().includes(q));
+  const box = $("histList");
+  $("histCount").textContent = records.length ? `${list.length} de ${records.length}` : "";
+  if (!records.length) { box.innerHTML = `<p class="note">Todavía no hay auditorías guardadas. Al terminar una, tocá <b>Guardar auditoría</b> y aparece acá para todos.</p>`; return; }
+  if (!list.length) { box.innerHTML = `<p class="note">No hay auditorías que coincidan con la búsqueda.</p>`; return; }
+  box.innerHTML = list.map(r => {
+    const cls = statusClass(r);
+    const segs = (r.segmentos || []).map(s => `<tr><td>${s.n}. ${esc(s.nombre)}</td><td>${f2(s.ideal)}</td><td>${f2(s.real)}</td><td>${(s.real / s.ideal * 100).toFixed(1)}%</td></tr>`).join("");
+    const devs = (r.desvios || []).length ? `<ol class="devs">${r.desvios.map(d => `<li><b>${esc(d.n)}</b> (${f2(d.real)} de ${f2(d.ideal)}) ${esc(d.texto)}${d.obs ? `<div class="sm">Obs.: ${esc(d.obs)}</div>` : ""}</li>`).join("")}</ol>` : `<p class="note">Sin desvíos.</p>`;
+    return `<details class="rec" data-id="${esc(r._id)}">
+      <summary>
+        <span class="rec-store">${esc(r.tienda || "Sin nombre")}</span>
+        <span class="rec-score num" style="color:var(--${cls})">${f2(r.total)}</span>
+        <span class="rec-meta num">${fmtDate(r.fecha)} · ${esc(r.auditor || "Sin auditor")}${r.completa ? "" : ` · incompleta (${r.evaluados}/${TOTAL_ITEMS})`}</span>
+        <span class="pill ${cls}" style="font-size:.78rem;padding:3px 9px;justify-self:end">${esc(r.estado)}</span>
+      </summary>
+      <div class="rec-body">
+        <div class="tbl-wrap"><table><thead><tr><th>Segmento</th><th>Ideal</th><th>Real</th><th>%</th></tr></thead><tbody>${segs}</tbody>
+          <tfoot><tr><td>Total</td><td>100.00</td><td>${f2(r.total)}</td><td>${Number(r.total).toFixed(1)}%</td></tr></tfoot></table></div>
+        <div><b>Desvíos</b>${devs}</div>
+        ${(r.fotos || []).length ? `<div><b>Fotos (${r.fotos.length})</b><div class="gallery" style="margin-top:8px">${r.fotos.map(p => `<figure><a href="/_blob/${esc(p.id)}" target="_blank" rel="noopener"><img src="/_blob/${esc(p.id)}" alt="Foto del ítem ${esc(p.n)}" loading="lazy"></a><figcaption>Ítem ${esc(p.n)}</figcaption></figure>`).join("")}</div></div>` : ""}
+        <p class="note">Personal a cargo: ${esc(r.personalACargo || "-")} · Colaboradores: ${esc(r.colaboradores || "-")} · Unidades vendidas: ${esc(r.unidades || "-")}</p>
+        <div class="actions">
+          <button type="button" class="btn ghost sm" data-copy="${esc(r._id)}">Copiar resumen</button>
+          ${isAdmin ? `<button type="button" class="btn ghost sm" data-del="${esc(r._id)}">Eliminar</button>
+          <button type="button" class="btn danger sm" data-delyes="${esc(r._id)}" hidden>Sí, eliminar</button>` : ""}
+        </div>
+      </div>
+    </details>`;
+  }).join("");
+}
+$("histFilter").addEventListener("input", renderHistory);
+$("histList").addEventListener("click", async e => {
+  const c = e.target.closest("[data-copy]");
+  if (c) { const r = records.find(x => x._id === c.dataset.copy); if (r) copyText(r.resumen || ""); return; }
+  const d = e.target.closest("[data-del]");
+  if (d) { d.hidden = true; d.parentElement.querySelector("[data-delyes]").hidden = false; return; }
+  const y = e.target.closest("[data-delyes]");
+  if (y && db) {
+    y.disabled = true;
+    try { await db.collection("audits").doc(y.dataset.delyes).delete(); flash("Auditoría eliminada"); }
+    catch (err) { y.disabled = false; flash("No se pudo eliminar. Probá de nuevo.", true); }
+  }
+});
+
+async function initShared() {
+  if (!window.claude || typeof window.claude.use !== "function") {
+    $("histEmpty").textContent = "El historial compartido se ve al abrir esta página desde Claude.";
+    setNote("Abrí la página desde Claude para guardar. Mientras tanto podés copiar el resumen.");
+    return;
+  }
+  const [dbNs, u, dl, as] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("downloads"), claude.use("assets")]);
+  db = dbNs; userApi = u; assetsApi = as;
+  document.querySelectorAll(".item").forEach(paintItem);
+  if (dl) {
+    $("dlBtn").hidden = false;
+    $("dlBtn").addEventListener("click", async () => {
+      const name = `Auditoria_${(state.fields.f_tienda || "tienda").replace(/[^\w\-]+/g, "_")}_${state.fields.f_fecha || today()}.txt`;
+      try { await dl.save({ filename: name, data: summaryText() }); } catch (e) { /* el usuario canceló o no está disponible */ }
+    });
+  }
+  if (u) {
+    try { myId = await u.id(); } catch (e) {}
+    try { isAdmin = !!(await u.canEdit()); } catch (e) {}
+    try { canWrite = await u.can("data.write"); } catch (e) { canWrite = null; }
+  }
+  if (!db) {
+    $("histEmpty").textContent = "Iniciá sesión en Claude para ver y guardar auditorías.";
+    setNote("Para guardar en el historial necesitás abrir la página con tu cuenta de Claude. Igual podés completar la planilla y copiar el resumen.");
+    return;
+  }
+  if (canWrite === false || !assetsApi) {
+    const b = $("accessBanner"); b.hidden = false;
+    b.innerHTML = `<strong>Estás con acceso de solo lectura</strong><span>Podés completar la planilla y copiar el resumen, pero no guardar ni subir fotos. Revisá que estés con la cuenta de Claude correcta, o pedile al dueño que te invite como Editor.</span>`;
+  }
+  if (canWrite === false) setNote("Tenés acceso de solo lectura: ves el historial pero no podés guardar. Pedile al dueño acceso de edición, o copiá el resumen y mandáselo.");
+  db.collection("audits").orderBy("savedAt", "desc").limit(500).onSnapshot(snap => {
+    records = snap.docs.map(d => Object.assign({ _id: d.id }, d.data()));
+    renderHistory();
+  }, () => { $("histList").innerHTML = `<p class="note">No se pudo cargar el historial. Recargá la página.</p>`; });
+}
+
+/* Mantener la pantalla encendida durante la recorrida (si el teléfono lo permite) */
+let wakeLock = null;
+async function keepAwake() { try { if (!wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch (e) {} }
+document.addEventListener("click", keepAwake);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && wakeLock === null && Object.keys(state.answers).length) keepAwake(); });
+
+load();
+build();
+if (!state.fields.f_fecha) state.fields.f_fecha = today();
+FIELDS.forEach(id => $(id).value = state.fields[id] || "");
+document.querySelectorAll(".item").forEach(paintItem);
+recalc();
+document.addEventListener("click", e => { if (saveArmed && !e.target.closest("#saveBtn")) { saveArmed = false; $("saveBtn").textContent = "Guardar auditoría"; } }, true);
+initShared();
+</script>
+
+</body>
+</html>
