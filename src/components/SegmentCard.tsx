@@ -3,7 +3,7 @@ import { ItemAnswer, ItemStatus, SegmentCalculation } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE, SEGMENTS } from '../data/segments';
 import { SegmentItem } from './SegmentItem';
-import { ChevronRight, ChevronLeft, ArrowRight, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SegmentCardProps {
   segmentData: SegmentCalculation;
@@ -38,7 +38,6 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
   onPartialScore,
   onAdjustPartialScore,
   onObservation,
-  onMarkPendingAsOk,
   onAddPhoto,
   onRemovePhoto,
   onViewPhoto,
@@ -50,7 +49,6 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
 }) => {
   const { seg, si, ideal, real, pct, segDone } = segmentData;
   const isStarted = segDone > 0;
-  const pendingInSegment = seg.items.length - segDone;
   const isLastSegment = si === SEGMENTS.length - 1;
 
   const getPctBadgeClass = () => {
@@ -94,24 +92,7 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
 
       {isOpen && (
         <div className="segment-body-wrapper">
-          {/* Quick segment tool: Approve all pending */}
-          {pendingInSegment > 0 && (
-            <div className="segment-quick-actions">
-              <button
-                type="button"
-                className="btn-mark-all-ok"
-                onClick={() => {
-                  onMarkPendingAsOk(si);
-                  onFlashMessage?.(`Los ${pendingInSegment} ítems pendientes se marcaron como Cumple`);
-                }}
-              >
-                <Sparkles size={16} className="sparkle-icon" />
-                <span>Marcar los {pendingInSegment} pendientes como <b>Cumple</b></span>
-              </button>
-            </div>
-          )}
-
-          {/* List of segment items */}
+          {/* List of segment items in 2x2 grid */}
           <div className="segment-items-stack">
             {seg.items.map((it, ii) => {
               const key = `${si}-${ii}`;

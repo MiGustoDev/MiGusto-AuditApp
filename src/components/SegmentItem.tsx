@@ -51,7 +51,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   const partialInputRef = useRef<HTMLInputElement>(null);
   const obsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const itemNumber = `${segmentIndex + 1}.${itemIndex + 1}`;
+  const itemNumber = `${itemIndex + 1}.`;
   const isSelected = !!answer;
   const currentStatus = answer?.s;
   const showExtra = (answer && answer.s !== 'ok') || Boolean(answer && answer.o);

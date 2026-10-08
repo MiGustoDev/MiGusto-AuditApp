@@ -78,6 +78,28 @@ html {
   width: 100%;
   height: 100%;
   color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: #1e293b #0b0f19;
+}
+
+/* CUSTOM DARK SCROLLBAR */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0f19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid #0b0f19;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
 }
 
 body {
@@ -1010,9 +1032,14 @@ input[type="date"],
 }
 
 .segment-items-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.segment-items-stack > .item-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .segment-focus-footer {
@@ -2380,6 +2407,9 @@ tfoot td {
   }
   .btn-choice span {
     font-size: 0.78rem;
+  }
+  .segment-items-stack {
+    grid-template-columns: 1fr;
   }
 }
 
