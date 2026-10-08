@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ItemAnswer, ItemStatus, SegmentItemDef } from '../types/audit';
 import { fmtPts } from '../utils/formatters';
 import { blobToDataUrl, shrinkImage } from '../utils/image';
@@ -57,6 +57,20 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   const showExtra = (answer && answer.s !== 'ok') || Boolean(answer && answer.o);
   const isPartial = currentStatus === 'partial';
   const isCritical = itemDef.points >= 3.5;
+
+  // Auto-resize textarea to fit content and line breaks
+  useEffect(() => {
+    if (obsTextareaRef.current && showExtra) {
+      obsTextareaRef.current.style.height = 'auto';
+      obsTextareaRef.current.style.height = `${Math.max(38, obsTextareaRef.current.scrollHeight)}px`;
+    }
+  }, [showExtra, answer?.o]);
+
+  const handleObsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onObservation(segmentIndex, itemIndex, e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.max(38, e.target.scrollHeight)}px`;
+  };
 
   const handleChoiceClick = (status: ItemStatus) => {
     onChoice(segmentIndex, itemIndex, status);
@@ -281,8 +295,8 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
               placeholder="Describí el motivo del desvío u observación..."
               aria-label={`Observación del ítem ${itemNumber}`}
               value={answer?.o || ''}
-              onChange={e => onObservation(segmentIndex, itemIndex, e.target.value)}
-              rows={2}
+              onChange={handleObsChange}
+              rows={1}
             />
           </div>
         </div>

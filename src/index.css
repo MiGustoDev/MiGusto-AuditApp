@@ -138,11 +138,18 @@ button {
   transition: all var(--transition-fast);
 }
 
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
+button:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 1px;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
 }
 
 /* Remove number input spinners */
@@ -782,6 +789,7 @@ input[type="date"],
   justify-content: space-between;
   gap: 6px;
   cursor: pointer;
+  outline: none;
   transition: all var(--transition-fast);
 }
 
@@ -790,9 +798,11 @@ input[type="date"],
   border-color: var(--line-strong);
 }
 
+.datepicker-trigger-btn:focus,
 .datepicker-trigger-btn:focus-visible {
   border-color: var(--accent);
   background: var(--surface);
+  outline: none;
 }
 
 .date-display-text {
@@ -1357,6 +1367,12 @@ input[type="date"],
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--fg);
+  outline: none;
+}
+
+.stepper-input:focus {
+  border-color: var(--accent);
+  outline: none;
 }
 
 .stepper-max {
@@ -1366,19 +1382,25 @@ input[type="date"],
 
 .observation-input-box textarea {
   width: 100%;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--fg);
   font-size: 0.85rem;
   font-family: inherit;
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
+  min-height: 38px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .observation-input-box textarea:focus {
   background: var(--surface);
   border-color: var(--accent);
+  outline: none;
 }
 
 /* ==========================================================================
@@ -1974,11 +1996,13 @@ tfoot td {
   color: var(--fg);
   font-size: 0.9rem;
   font-family: inherit;
+  outline: none;
 }
 
 .search-input-wrapper input:focus {
   background: var(--surface);
   border-color: var(--accent);
+  outline: none;
 }
 
 .clear-search-btn {
