@@ -1,5 +1,5 @@
 import React from 'react';
-import { ClipboardCheck, BarChart3, History, Sun, Moon } from 'lucide-react';
+import { ClipboardCheck, BarChart3, History } from 'lucide-react';
 
 export type ActiveTab = 'audit' | 'summary' | 'history';
 
@@ -8,8 +8,6 @@ interface NavbarProps {
   onTabChange: (tab: ActiveTab) => void;
   deviationsCount: number;
   historyCount: number;
-  theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   storeName?: string;
 }
 
@@ -18,8 +16,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onTabChange,
   deviationsCount,
   historyCount,
-  theme,
-  onToggleTheme,
   storeName
 }) => {
   return (
@@ -73,18 +69,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
         </nav>
-
-        <div className="header-actions">
-          <button
-            type="button"
-            className="icon-btn theme-toggle"
-            onClick={onToggleTheme}
-            title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            aria-label="Cambiar tema"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-        </div>
       </div>
     </header>
   );

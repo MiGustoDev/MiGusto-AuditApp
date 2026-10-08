@@ -1,29 +1,45 @@
 import React from 'react';
 import { AuditSummary } from '../types/audit';
 import { f2 } from '../utils/formatters';
-import { TOTAL_ITEMS } from '../data/segments';
-import { Zap, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { PASS_SCORE, TOTAL_ITEMS, SEGMENTS } from '../data/segments';
+import { 
+  Zap, 
+  CheckCircle2, 
+  AlertTriangle, 
+  XCircle,
+  Check,
+  Layers,
+  List
+} from 'lucide-react';
 
 interface ScoreBoardProps {
   summary: AuditSummary;
+  currentSegment: number;
+  onSelectSegment: (index: number) => void;
   onNextPending?: () => void;
   onJumpToSummary?: () => void;
   pendingCount: number;
+  viewMode: 'focus' | 'all';
+  onToggleViewMode: () => void;
 }
 
 export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   summary,
+  currentSegment,
+  onSelectSegment,
   onNextPending,
   onJumpToSummary,
-  pendingCount
+  pendingCount,
+  viewMode,
+  onToggleViewMode
 }) => {
   const percentScore = Math.min(100, Math.max(0, summary.total));
   const completionPercent = Math.round((summary.done / TOTAL_ITEMS) * 100);
 
   return (
     <div className="scoreboard-card" id="board">
+      {/* Top Header: Score circle, status and quick buttons */}
       <div className="scoreboard-main">
-        {/* Score Value & Status */}
         <div className="score-primary">
           <div className="score-circle-wrapper">
             <svg className="score-svg" viewBox="0 0 100 100">
@@ -59,7 +75,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 <span>{summary.statusLabel}</span>
               </span>
               <span className="threshold-indicator" title="Mínimo para aprobar: 85 pts">
-                Meta: <b>85 pts</b>
+                Meta: <b>{PASS_SCORE} pts</b>
               </span>
             </div>
 
@@ -80,7 +96,6 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
           </div>
         </div>
 
-        {/* Quick action buttons on ScoreBoard */}
         <div className="score-actions">
           {pendingCount > 0 ? (
             <button
@@ -102,6 +117,65 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
               <span>Auditoría completa · Ver informe</span>
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Integrated Phases Section (Visualizadas todas sin scroll horizontal) */}
+      <div className="phases-integrated-container">
+        <div className="phases-section-header">
+          <span className="phases-section-title">Fases de Auditoría ({SEGMENTS.length})</span>
+          <button
+            type="button"
+            className="view-toggle-btn"
+            onClick={onToggleViewMode}
+            title={viewMode === 'focus' ? 'Ver todas las fases juntas' : 'Ver una fase a la vez'}
+          >
+            {viewMode === 'focus' ? (
+              <>
+                <Layers size={13} />
+                <span>Modo Enfocado</span>
+              </>
+            ) : (
+              <>
+                <List size={13} />
+                <span>Ver Todas</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="phases-grid-all">
+          {SEGMENTS.map((seg, si) => {
+            const rowData = summary.rows[si];
+            const isComplete = rowData ? rowData.segDone === seg.items.length : false;
+            const isActive = viewMode === 'focus' && currentSegment === si;
+            const doneItems = rowData ? rowData.segDone : 0;
+            const totalItems = seg.items.length;
+            const realPts = rowData ? rowData.real : 0;
+
+            return (
+              <button
+                key={si}
+                type="button"
+                className={`phase-card-btn ${isActive ? 'active' : ''} ${isComplete ? 'is-complete' : ''}`}
+                onClick={() => onSelectSegment(si)}
+              >
+                <div className="phase-card-header">
+                  <span className="phase-number-tag">
+                    {isComplete ? <Check size={12} className="phase-check-icon" /> : `${si + 1}`}
+                  </span>
+                  <span className="phase-name-text">{seg.short}</span>
+                </div>
+
+                <div className="phase-card-bottom num">
+                  <span className="phase-items-count">{doneItems}/{totalItems}</span>
+                  <span className={`phase-pct-tag ${isComplete ? 'done' : doneItems > 0 ? 'prog' : 'empty'}`}>
+                    {isComplete ? '100%' : `${f2(realPts)} pts`}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

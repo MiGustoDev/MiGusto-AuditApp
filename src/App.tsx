@@ -4,7 +4,6 @@ import { useSharedStorage } from './hooks/useSharedStorage';
 import { useWakeLock } from './hooks/useWakeLock';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { ScoreBoard } from './components/ScoreBoard';
-import { SegmentNav } from './components/SegmentNav';
 import { GeneralFields } from './components/GeneralFields';
 import { SegmentCard } from './components/SegmentCard';
 import { SummaryTable } from './components/SummaryTable';
@@ -54,21 +53,10 @@ export function App() {
     0: true
   });
 
-  // Theme state
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('migusto-theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
-
+  // Always force Dark Mode
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('migusto-theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; isErr: boolean } | null>(null);
@@ -103,17 +91,14 @@ export function App() {
         const el = document.getElementById(`seg${si + 1}`);
         el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 50);
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Find next unanswered item across segments to eliminate manual hunting and scrolling
+  // Find next unanswered item across segments
   const handleJumpToNextPending = () => {
     let targetSi = -1;
     let targetIi = -1;
 
-    // Start looking from current segment forward
     for (let offset = 0; offset < SEGMENTS.length; offset++) {
       const si = (currentSegment + offset) % SEGMENTS.length;
       const seg = SEGMENTS[si];
@@ -162,14 +147,12 @@ export function App() {
 
   return (
     <div className="app-container">
-      {/* Top Main Navbar */}
+      {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         deviationsCount={summary.devs.length}
         historyCount={records.length}
-        theme={theme}
-        onToggleTheme={toggleTheme}
         storeName={state.fields.f_tienda}
       />
 
@@ -185,34 +168,29 @@ export function App() {
         )}
 
         {/* ============================================================ */}
-        {/* TAB 1: AUDIT VIEW (Optimized for field audit & zero scroll) */}
+        {/* TAB 1: AUDIT VIEW                                            */}
         {/* ============================================================ */}
         {activeTab === 'audit' && (
           <div className="audit-tab-content animate-fade-in">
-            {/* Realtime dynamic ScoreBoard */}
+            {/* 1. PRIMERO: Círculo de progreso + Fases integradas sin scroll */}
             <ScoreBoard
               summary={summary}
+              currentSegment={currentSegment}
+              onSelectSegment={handleSelectSegment}
               onNextPending={handleJumpToNextPending}
               onJumpToSummary={() => setActiveTab('summary')}
               pendingCount={pendingCount}
-            />
-
-            {/* General Fields (Compact & Expandable) */}
-            <GeneralFields fields={state.fields} onFieldChange={setField} />
-
-            {/* Horizontal Segment Navigation Rail */}
-            <SegmentNav
-              currentSegment={currentSegment}
-              onSelectSegment={handleSelectSegment}
-              summary={summary}
               viewMode={viewMode}
               onToggleViewMode={() => setViewMode(prev => (prev === 'focus' ? 'all' : 'focus'))}
             />
 
-            {/* Segments Display */}
+            {/* 2. SEGUNDO: Datos del local en una sola línea con título */}
+            <GeneralFields fields={state.fields} onFieldChange={setField} />
+
+            {/* 3. TERCERO: Contenido de la fase / segmento */}
             <div id="segments" className="segments-viewport">
               {viewMode === 'focus' ? (
-                // Focus Mode: Show only current segment for maximum speed & zero scroll clutter
+                // Focus Mode: Show only current segment
                 <SegmentCard
                   key={currentSegment}
                   segmentData={summary.rows[currentSegment]}
@@ -243,7 +221,7 @@ export function App() {
                   onJumpToSummary={() => setActiveTab('summary')}
                 />
               ) : (
-                // All Mode: Show all segments in accordion list
+                // All Mode: Show all segments
                 summary.rows.map(segCalc => (
                   <SegmentCard
                     key={segCalc.si}
@@ -275,10 +253,8 @@ export function App() {
         {/* ============================================================ */}
         {activeTab === 'summary' && (
           <div className="summary-tab-content animate-fade-in">
-            {/* Score & Verdict Banner */}
             <VerdictCard summary={summary} />
 
-            {/* Breakdown Table & Cards */}
             <SummaryTable
               summary={summary}
               onSelectSegment={si => {
@@ -287,7 +263,6 @@ export function App() {
               }}
             />
 
-            {/* Deviations List */}
             <DeviationsList
               deviations={summary.devs}
               onSelectDeviation={itemNum => {
@@ -300,7 +275,6 @@ export function App() {
               }}
             />
 
-            {/* Action Bar (Save, Export WhatsApp, Download, Reset) */}
             <ActionToolbar
               state={state}
               summary={summary}
