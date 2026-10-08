@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { AuditSummary } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE, TOTAL_ITEMS, SEGMENTS } from '../data/segments';
@@ -26,9 +27,34 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   const percentScore = Math.min(100, Math.max(0, summary.total));
   const completionPercent = Math.round((summary.done / TOTAL_ITEMS) * 100);
   const isComplete = summary.isComplete;
+  const boardRef = useRef<HTMLDivElement>(null);
+  const prevScoreRef = useRef(summary.total);
+
+  // Stagger animation on phase buttons on initial mount
+  useEffect(() => {
+    if (boardRef.current) {
+      gsap.fromTo(
+        boardRef.current.querySelectorAll('.phase-card-btn'),
+        { opacity: 0, y: 8, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.35, stagger: 0.025, ease: 'power2.out' }
+      );
+    }
+  }, []);
+
+  // Subtle pulse on score when score updates
+  useEffect(() => {
+    if (boardRef.current && prevScoreRef.current !== summary.total) {
+      prevScoreRef.current = summary.total;
+      gsap.fromTo(
+        boardRef.current.querySelector('.score-number'),
+        { scale: 1.08 },
+        { scale: 1, duration: 0.28, ease: 'power2.out' }
+      );
+    }
+  }, [summary.total]);
 
   return (
-    <div className="scoreboard-card" id="board">
+    <div ref={boardRef} className="scoreboard-card" id="board">
       {/* Top Header: Score circle, status and Ver Informe button */}
       <div className="scoreboard-main">
         <div className="score-primary">

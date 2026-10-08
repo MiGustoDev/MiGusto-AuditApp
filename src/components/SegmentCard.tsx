@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { ItemAnswer, ItemStatus, SegmentCalculation } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE, SEGMENTS } from '../data/segments';
@@ -50,6 +51,18 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
   const { seg, si, ideal, real, pct, segDone } = segmentData;
   const isStarted = segDone > 0;
   const isLastSegment = si === SEGMENTS.length - 1;
+  const stackRef = useRef<HTMLDivElement>(null);
+
+  // Stagger animation for 2x2 item cards on segment change
+  useEffect(() => {
+    if (stackRef.current) {
+      gsap.fromTo(
+        stackRef.current.children,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.3, stagger: 0.03, ease: 'power2.out' }
+      );
+    }
+  }, [si]);
 
   const getPctBadgeClass = () => {
     if (!isStarted) return 'badge-neutral';
@@ -93,7 +106,7 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
       {isOpen && (
         <div className="segment-body-wrapper">
           {/* List of segment items in 2x2 grid */}
-          <div className="segment-items-stack">
+          <div ref={stackRef} className="segment-items-stack">
             {seg.items.map((it, ii) => {
               const key = `${si}-${ii}`;
               return (

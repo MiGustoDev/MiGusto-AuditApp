@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import gsap from 'gsap';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CustomDatePickerProps {
@@ -16,6 +17,7 @@ const DAY_NAMES = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
 export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   // Parse current selected date
   const parseDate = (dStr: string) => {
@@ -35,6 +37,17 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
     setViewYear(d.getFullYear());
     setViewMonth(d.getMonth());
   }, [value]);
+
+  // Animate popover with GSAP
+  useEffect(() => {
+    if (isOpen && popoverRef.current) {
+      gsap.fromTo(
+        popoverRef.current,
+        { opacity: 0, y: -8, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: 'power2.out' }
+      );
+    }
+  }, [isOpen]);
 
   // Close when clicking outside
   useEffect(() => {
@@ -126,7 +139,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ value, onCha
       </button>
 
       {isOpen && (
-        <div className="datepicker-popover animate-slide-down">
+        <div ref={popoverRef} className="datepicker-popover">
           {/* Header */}
           <div className="datepicker-header">
             <button

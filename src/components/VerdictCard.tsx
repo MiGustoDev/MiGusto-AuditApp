@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { AuditSummary } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE } from '../data/segments';
@@ -11,9 +12,20 @@ interface VerdictCardProps {
 export const VerdictCard: React.FC<VerdictCardProps> = ({ summary }) => {
   const isApproved = summary.total >= PASS_SCORE;
   const ptsDiff = summary.total - PASS_SCORE;
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cardRef.current) {
+      gsap.fromTo(
+        cardRef.current,
+        { opacity: 0, scale: 0.96, y: 8 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+      );
+    }
+  }, []);
 
   return (
-    <div className={`verdict-banner ${summary.statusClass}`}>
+    <div ref={cardRef} className={`verdict-banner ${summary.statusClass}`}>
       <div className="verdict-icon-container">
         {summary.statusClass === 'ok' && <CheckCircle2 size={36} />}
         {summary.statusClass === 'warn' && <AlertTriangle size={36} />}

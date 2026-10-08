@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { AuditFields } from '../types/audit';
 import { Store, User, Users, ShoppingBag, Briefcase } from 'lucide-react';
 import { CustomDatePicker } from './CustomDatePicker';
@@ -9,8 +10,20 @@ interface GeneralFieldsProps {
 }
 
 export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldChange }) => {
+  const containerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      gsap.fromTo(
+        containerRef.current.querySelectorAll('.field-item'),
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.3, stagger: 0.03, ease: 'power2.out' }
+      );
+    }
+  }, []);
+
   return (
-    <section className="general-card-inline card" aria-label="Datos del local">
+    <section ref={containerRef} className="general-card-inline card" aria-label="Datos del local">
       <div className="general-section-title-row">
         <span className="general-section-title">Datos del local</span>
       </div>

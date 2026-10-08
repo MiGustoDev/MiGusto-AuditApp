@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import gsap from 'gsap';
 import { useAuditState } from './hooks/useAuditState';
 import { useSharedStorage } from './hooks/useSharedStorage';
 import { useWakeLock } from './hooks/useWakeLock';
@@ -46,6 +47,19 @@ export function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState<ActiveTab>('audit');
   const [currentSegment, setCurrentSegment] = useState<number>(0);
+  const tabContentRef = useRef<HTMLDivElement>(null);
+  const toastRef = useRef<HTMLDivElement>(null);
+
+  // Animate tab switch smoothly with GSAP
+  useEffect(() => {
+    if (tabContentRef.current) {
+      gsap.fromTo(
+        tabContentRef.current,
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out' }
+      );
+    }
+  }, [activeTab]);
 
   // Always force Dark Mode
   useEffect(() => {
@@ -55,6 +69,17 @@ export function App() {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; isErr: boolean } | null>(null);
   const toastTimeoutRef = useRef<any>(null);
+
+  // Animate toast notification with GSAP
+  useEffect(() => {
+    if (toast && toastRef.current) {
+      gsap.fromTo(
+        toastRef.current,
+        { opacity: 0, y: 20, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: 'back.out(1.5)' }
+      );
+    }
+  }, [toast]);
 
   // Activate wake lock when items are being evaluated
   useWakeLock(summary.done > 0);
@@ -107,7 +132,7 @@ export function App() {
         {/* TAB 1: AUDIT VIEW                                            */}
         {/* ============================================================ */}
         {activeTab === 'audit' && (
-          <div className="audit-tab-content animate-fade-in">
+          <div ref={tabContentRef} className="audit-tab-content">
             {/* 1. PRIMERO: Círculo de progreso + Fases integradas sin scroll */}
             <ScoreBoard
               summary={summary}
@@ -158,7 +183,7 @@ export function App() {
         {/* TAB 2: SUMMARY & DEVIATIONS VIEW                             */}
         {/* ============================================================ */}
         {activeTab === 'summary' && (
-          <div className="summary-tab-content animate-fade-in">
+          <div ref={tabContentRef} className="summary-tab-content">
             <VerdictCard summary={summary} />
 
             <SummaryTable
@@ -206,7 +231,7 @@ export function App() {
         {/* TAB 3: HISTORY VIEW                                          */}
         {/* ============================================================ */}
         {activeTab === 'history' && (
-          <div className="history-tab-content animate-fade-in">
+          <div ref={tabContentRef} className="history-tab-content">
             <HistorySection
               records={records}
               loading={historyLoading}
@@ -226,7 +251,7 @@ export function App() {
 
       {/* Toast Notification Alert */}
       {toast && (
-        <div className={`toast-notification ${toast.isErr ? 'is-error' : 'is-success'}`} role="status">
+        <div ref={toastRef} className={`toast-notification ${toast.isErr ? 'is-error' : 'is-success'}`} role="status">
           <span>{toast.msg}</span>
         </div>
       )}

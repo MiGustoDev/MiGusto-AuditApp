@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { Deviation } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { CheckCircle2, MessageSquare } from 'lucide-react';
@@ -10,9 +11,20 @@ interface DeviationsListProps {
 
 export const DeviationsList: React.FC<DeviationsListProps> = ({ deviations, onSelectDeviation }) => {
   const pointsLost = deviations.reduce((sum, d) => sum + (d.ideal - d.got), 0);
+  const containerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current && deviations.length > 0) {
+      gsap.fromTo(
+        containerRef.current.querySelectorAll('.deviation-card'),
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.3, stagger: 0.03, ease: 'power2.out' }
+      );
+    }
+  }, [deviations.length]);
 
   return (
-    <section className="deviations-section card" aria-label="Desvíos detectados">
+    <section ref={containerRef} className="deviations-section card" aria-label="Desvíos detectados">
       <div className="section-header-row">
         <div className="deviations-title-wrap">
           <div className="title-with-badge">

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { AuditSummary } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE } from '../data/segments';
@@ -9,8 +10,25 @@ interface SummaryTableProps {
 }
 
 export const SummaryTable: React.FC<SummaryTableProps> = ({ summary, onSelectSegment }) => {
+  const containerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      gsap.fromTo(
+        containerRef.current.querySelectorAll('.summary-mini-card'),
+        { opacity: 0, y: 8, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.3, stagger: 0.025, ease: 'power2.out' }
+      );
+      gsap.fromTo(
+        containerRef.current.querySelectorAll('tbody tr'),
+        { opacity: 0, x: -8 },
+        { opacity: 1, x: 0, duration: 0.28, stagger: 0.02, ease: 'power2.out', delay: 0.1 }
+      );
+    }
+  }, []);
+
   return (
-    <section className="summary-table-section card" aria-label="Desglose por segmento">
+    <section ref={containerRef} className="summary-table-section card" aria-label="Desglose por segmento">
       <div className="section-header-row">
         <h3 className="section-title">Desglose por Segmento</h3>
         <span className="section-subtitle num">{summary.done} de 63 ítems evaluados</span>

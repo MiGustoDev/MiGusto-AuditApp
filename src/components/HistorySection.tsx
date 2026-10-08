@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { SavedAuditRecord } from '../types/audit';
 import { f2, fmtDate } from '../utils/formatters';
 import { TOTAL_ITEMS, PASS_SCORE } from '../data/segments';
@@ -37,6 +38,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const q = searchTerm.trim().toLowerCase();
   const filteredList = records.filter(
@@ -46,6 +48,16 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
       (r.auditor || '').toLowerCase().includes(q) ||
       (r.fecha || '').includes(q)
   );
+
+  useEffect(() => {
+    if (listRef.current && filteredList.length > 0) {
+      gsap.fromTo(
+        listRef.current.querySelectorAll('.history-card'),
+        { opacity: 0, y: 10, scale: 0.98 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.3, stagger: 0.035, ease: 'power2.out' }
+      );
+    }
+  }, [filteredList.length, searchTerm]);
 
   const getStatusClass = (estado?: string): 'bad' | 'ok' | 'warn' => {
     const s = (estado || '').toLowerCase();
@@ -105,7 +117,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
       </div>
 
       {/* List / Cards */}
-      <div className="history-list-container">
+      <div ref={listRef} className="history-list-container">
         {loading ? (
           <div className="history-loading-state">
             <div className="spinner-sm"></div>

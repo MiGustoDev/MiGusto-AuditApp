@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
 import { ItemAnswer, ItemStatus, SegmentItemDef } from '../types/audit';
 import { fmtPts } from '../utils/formatters';
 import { blobToDataUrl, shrinkImage } from '../utils/image';
@@ -50,6 +51,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const partialInputRef = useRef<HTMLInputElement>(null);
   const obsTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const extraPanelRef = useRef<HTMLDivElement>(null);
 
   const itemNumber = `${itemIndex + 1}.`;
   const isSelected = !!answer;
@@ -66,13 +68,31 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
     }
   }, [showExtra, answer?.o]);
 
+  // Smooth GSAP reveal for extra panel
+  useEffect(() => {
+    if (showExtra && extraPanelRef.current) {
+      gsap.fromTo(
+        extraPanelRef.current,
+        { opacity: 0, y: -6 },
+        { opacity: 1, y: 0, duration: 0.22, ease: 'power2.out' }
+      );
+    }
+  }, [showExtra]);
+
   const handleObsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onObservation(segmentIndex, itemIndex, e.target.value);
     e.target.style.height = 'auto';
     e.target.style.height = `${Math.max(38, e.target.scrollHeight)}px`;
   };
 
-  const handleChoiceClick = (status: ItemStatus) => {
+  const handleChoiceClick = (status: ItemStatus, btnElement?: HTMLElement) => {
+    if (btnElement) {
+      gsap.fromTo(
+        btnElement,
+        { scale: 0.93 },
+        { scale: 1, duration: 0.22, ease: 'back.out(2)' }
+      );
+    }
     onChoice(segmentIndex, itemIndex, status);
     if (status !== 'ok') {
       setTimeout(() => {
@@ -156,7 +176,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
           <button
             type="button"
             className={`btn-choice choice-ok ${currentStatus === 'ok' ? 'active' : ''}`}
-            onClick={() => handleChoiceClick('ok')}
+            onClick={e => handleChoiceClick('ok', e.currentTarget)}
             aria-pressed={currentStatus === 'ok'}
           >
             <Check size={16} className="choice-icon" />
@@ -166,7 +186,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
           <button
             type="button"
             className={`btn-choice choice-partial ${currentStatus === 'partial' ? 'active' : ''}`}
-            onClick={() => handleChoiceClick('partial')}
+            onClick={e => handleChoiceClick('partial', e.currentTarget)}
             aria-pressed={currentStatus === 'partial'}
           >
             <Slash size={14} className="choice-icon rotate-icon" />
@@ -176,7 +196,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
           <button
             type="button"
             className={`btn-choice choice-no ${currentStatus === 'no' ? 'active' : ''}`}
-            onClick={() => handleChoiceClick('no')}
+            onClick={e => handleChoiceClick('no', e.currentTarget)}
             aria-pressed={currentStatus === 'no'}
           >
             <X size={16} className="choice-icon" />
@@ -248,7 +268,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
 
       {/* Extra Fields for Partial Score & Observation */}
       {showExtra && (
-        <div className="item-extra-panel animate-slide-down">
+        <div ref={extraPanelRef} className="item-extra-panel">
           {isPartial && (
             <div className="partial-score-editor">
               <span className="editor-label">Puntaje asignado:</span>
