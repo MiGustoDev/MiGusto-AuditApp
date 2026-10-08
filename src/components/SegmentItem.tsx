@@ -2,6 +2,16 @@ import React, { useRef, useState } from 'react';
 import { ItemAnswer, ItemStatus, SegmentItemDef } from '../types/audit';
 import { fmtPts } from '../utils/formatters';
 import { blobToDataUrl, shrinkImage } from '../utils/image';
+import { 
+  Check, 
+  Slash, 
+  X, 
+  Camera, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  Flame
+} from 'lucide-react';
 
 interface SegmentItemProps {
   segmentIndex: number;
@@ -9,7 +19,6 @@ interface SegmentItemProps {
   itemDef: SegmentItemDef;
   answer?: ItemAnswer;
   photos?: string[];
-  isClaudeEnv?: boolean;
   onChoice: (segmentIndex: number, itemIndex: number, status: ItemStatus) => void;
   onPartialScore: (segmentIndex: number, itemIndex: number, value: number) => void;
   onAdjustPartialScore: (segmentIndex: number, itemIndex: number, step: number) => void;
@@ -43,9 +52,11 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   const obsTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const itemNumber = `${segmentIndex + 1}.${itemIndex + 1}`;
-  const itemStatusClass = answer ? ` s-${answer.s}` : '';
+  const isSelected = !!answer;
+  const currentStatus = answer?.s;
   const showExtra = (answer && answer.s !== 'ok') || Boolean(answer && answer.o);
-  const isPartial = answer?.s === 'partial';
+  const isPartial = currentStatus === 'partial';
+  const isCritical = itemDef.points >= 3.5;
 
   const handleChoiceClick = (status: ItemStatus) => {
     onChoice(segmentIndex, itemIndex, status);
@@ -88,9 +99,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
             : code === 'unsupported_type'
             ? 'Ese formato de imagen no se puede subir. Usá JPG o PNG.'
             : code === 'quota_or_state'
-            ? 'Se llenó el espacio de fotos. Eliminá auditorías viejas del historial.'
-            : code === 'rate_limited'
-            ? 'Demasiadas fotos seguidas. Esperá unos segundos y probá de nuevo.'
+            ? 'Se llenó el espacio de fotos.'
             : 'No se pudo subir la foto. Revisá la imagen o conexión.';
         onFlashMessage?.(msg, true);
       } finally {
@@ -107,155 +116,175 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   };
 
   return (
-    <div className={`item${itemStatusClass}`} data-key={`${segmentIndex}-${itemIndex}`}>
-      <div className="item-top">
-        <div className="item-text">
-          <b>{itemNumber}</b>
-          {itemDef.text}
+    <div 
+      className={`item-card ${isSelected ? `status-${currentStatus}` : 'unanswered'} ${isCritical ? 'high-impact-item' : ''}`}
+      data-key={`${segmentIndex}-${itemIndex}`}
+      id={`item-${segmentIndex}-${itemIndex}`}
+    >
+      {/* Top Header: Number, Text, Points */}
+      <div className="item-header-row">
+        <div className="item-title-col">
+          <span className="item-badge-num">{itemNumber}</span>
+          <p className="item-description-text">{itemDef.text}</p>
         </div>
-        <span className={`pts num${itemDef.points >= 4 ? ' big' : ''}`}>
-          {fmtPts(itemDef.points)}
-        </span>
+
+        <div className="item-points-col">
+          <span className={`pts-tag num ${isCritical ? 'high-impact-pts' : ''}`}>
+            {isCritical && <Flame size={12} className="pts-icon" />}
+            {fmtPts(itemDef.points)}
+          </span>
+        </div>
       </div>
 
-      <div className="choices" role="group" aria-label={`Resultado ${itemNumber}`}>
-        <button
-          type="button"
-          className="choice-btn c-ok"
-          aria-pressed={answer?.s === 'ok'}
-          onClick={() => handleChoiceClick('ok')}
-        >
-          ✓ Cumple
-        </button>
-        <button
-          type="button"
-          className="choice-btn c-partial"
-          aria-pressed={answer?.s === 'partial'}
-          onClick={() => handleChoiceClick('partial')}
-        >
-          Parcial
-        </button>
-        <button
-          type="button"
-          className="choice-btn c-no"
-          aria-pressed={answer?.s === 'no'}
-          onClick={() => handleChoiceClick('no')}
-        >
-          ✗ No
-        </button>
-
-        <button
-          type="button"
-          className="cam"
-          aria-label={`Agregar foto al ítem ${itemNumber}`}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+      {/* Choice Buttons Bar */}
+      <div className="item-actions-row">
+        <div className="item-choices-group" role="group" aria-label={`Evaluación ítem ${itemNumber}`}>
+          <button
+            type="button"
+            className={`btn-choice choice-ok ${currentStatus === 'ok' ? 'active' : ''}`}
+            onClick={() => handleChoiceClick('ok')}
+            aria-pressed={currentStatus === 'ok'}
           >
-            <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
-            <circle cx="12" cy="13" r="3.5" />
-          </svg>
-          {photos.length > 0 && <span className="badge">{photos.length}</span>}
-        </button>
+            <Check size={16} className="choice-icon" />
+            <span>Cumple</span>
+          </button>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="sr-only"
-          accept="image/*"
-          multiple
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={handleFileChange}
-        />
+          <button
+            type="button"
+            className={`btn-choice choice-partial ${currentStatus === 'partial' ? 'active' : ''}`}
+            onClick={() => handleChoiceClick('partial')}
+            aria-pressed={currentStatus === 'partial'}
+          >
+            <Slash size={14} className="choice-icon rotate-icon" />
+            <span>Parcial</span>
+          </button>
+
+          <button
+            type="button"
+            className={`btn-choice choice-no ${currentStatus === 'no' ? 'active' : ''}`}
+            onClick={() => handleChoiceClick('no')}
+            aria-pressed={currentStatus === 'no'}
+          >
+            <X size={16} className="choice-icon" />
+            <span>No</span>
+          </button>
+        </div>
+
+        {/* Camera trigger */}
+        <div className="item-camera-wrapper">
+          <button
+            type="button"
+            className={`btn-camera ${photos.length > 0 ? 'has-photos' : ''}`}
+            aria-label={`Adjuntar foto al ítem ${itemNumber}`}
+            onClick={() => fileInputRef.current?.click()}
+            title="Agregar foto de evidencia"
+          >
+            <Camera size={17} />
+            {photos.length > 0 && <span className="camera-counter-badge">{photos.length}</span>}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="sr-only"
+            accept="image/*"
+            multiple
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={handleFileChange}
+          />
+        </div>
       </div>
 
+      {/* Uploaded Photos Thumbnails */}
       {(photos.length > 0 || uploadingCount > 0) && (
-        <div className="photos">
+        <div className="item-photos-grid">
           {photos.map(photoIdOrUrl => {
             const src = resolvePhotoSrc(photoIdOrUrl);
             return (
-              <div key={photoIdOrUrl} className="photo">
+              <div key={photoIdOrUrl} className="photo-thumb-card">
                 <img
                   src={src}
-                  alt={`Foto del ítem ${itemNumber}`}
+                  alt={`Evidencia ${itemNumber}`}
                   loading="lazy"
                   onClick={() => onViewPhoto(src)}
                 />
                 <button
                   type="button"
-                  className="rm-photo"
+                  className="photo-remove-btn"
                   aria-label="Quitar foto"
                   onClick={e => {
                     e.stopPropagation();
                     onRemovePhoto(segmentIndex, itemIndex, photoIdOrUrl);
                   }}
+                  title="Eliminar foto"
                 >
-                  ×
+                  <Trash2 size={13} />
                 </button>
               </div>
             );
           })}
           {Array.from({ length: uploadingCount }).map((_, i) => (
-            <div key={i} className="photo loading">
-              Subiendo…
+            <div key={i} className="photo-thumb-card uploading-placeholder">
+              <span>Subiendo...</span>
             </div>
           ))}
         </div>
       )}
 
+      {/* Extra Fields for Partial Score & Observation */}
       {showExtra && (
-        <div className="extra">
+        <div className="item-extra-panel animate-slide-down">
           {isPartial && (
-            <div className="partial-row">
-              <button
-                type="button"
-                className="step"
-                aria-label="Restar 0,25"
-                onClick={() => onAdjustPartialScore(segmentIndex, itemIndex, -0.25)}
-              >
-                −
-              </button>
-              <input
-                ref={partialInputRef}
-                type="number"
-                inputMode="decimal"
-                step="0.25"
-                min="0"
-                max={itemDef.points}
-                aria-label={`Puntaje real ${itemNumber}`}
-                value={answer?.v !== undefined ? answer.v : ''}
-                onChange={e => {
-                  const val = parseFloat(e.target.value);
-                  onPartialScore(segmentIndex, itemIndex, isNaN(val) ? 0 : val);
-                }}
-              />
-              <button
-                type="button"
-                className="step"
-                aria-label="Sumar 0,25"
-                onClick={() => onAdjustPartialScore(segmentIndex, itemIndex, 0.25)}
-              >
-                +
-              </button>
-              <span>de {fmtPts(itemDef.points)}</span>
+            <div className="partial-score-editor">
+              <span className="editor-label">Puntaje asignado:</span>
+              <div className="stepper-control">
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  aria-label="Restar 0.25 puntos"
+                  onClick={() => onAdjustPartialScore(segmentIndex, itemIndex, -0.25)}
+                >
+                  <Minus size={15} />
+                </button>
+                <input
+                  ref={partialInputRef}
+                  type="number"
+                  inputMode="decimal"
+                  step="0.25"
+                  min="0"
+                  max={itemDef.points}
+                  aria-label={`Puntaje asignado al ítem ${itemNumber}`}
+                  value={answer?.v !== undefined ? answer.v : ''}
+                  onChange={e => {
+                    const val = parseFloat(e.target.value);
+                    onPartialScore(segmentIndex, itemIndex, isNaN(val) ? 0 : val);
+                  }}
+                  className="stepper-input num"
+                />
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  aria-label="Sumar 0.25 puntos"
+                  onClick={() => onAdjustPartialScore(segmentIndex, itemIndex, 0.25)}
+                >
+                  <Plus size={15} />
+                </button>
+                <span className="stepper-max">de {fmtPts(itemDef.points)}</span>
+              </div>
             </div>
           )}
 
-          <textarea
-            ref={obsTextareaRef}
-            placeholder="Observación (qué se vio, qué falta)"
-            aria-label={`Observación ${itemNumber}`}
-            value={answer?.o || ''}
-            onChange={e => onObservation(segmentIndex, itemIndex, e.target.value)}
-          />
+          <div className="observation-input-box">
+            <textarea
+              ref={obsTextareaRef}
+              placeholder="Describí el motivo del desvío u observación..."
+              aria-label={`Observación del ítem ${itemNumber}`}
+              value={answer?.o || ''}
+              onChange={e => onObservation(segmentIndex, itemIndex, e.target.value)}
+              rows={2}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AuditState, AuditSummary } from '../types/audit';
 import { TOTAL_ITEMS } from '../data/segments';
 import { buildRecordToSave, generateSummaryText, getTodayDate } from '../utils/formatters';
+import { Save, Download, RotateCcw, AlertTriangle, Share2 } from 'lucide-react';
 
 interface ActionToolbarProps {
   state: AuditState;
@@ -12,9 +13,11 @@ interface ActionToolbarProps {
   onSave: (record: ReturnType<typeof buildRecordToSave>) => Promise<{ ok: boolean; error?: string }>;
   onReset: () => void;
   onDownload: (filename: string, text: string) => void;
-  toast: { msg: string; isErr: boolean } | null;
+  toast?: { msg: string; isErr: boolean } | null;
   setToast: (toast: { msg: string; isErr: boolean } | null) => void;
   saveNote?: string;
+  onJumpToSummary?: () => void;
+  activeTab?: string;
 }
 
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -26,7 +29,6 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   onSave,
   onReset,
   onDownload,
-  toast,
   setToast,
   saveNote
 }) => {
@@ -58,7 +60,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     const txt = generateSummaryText(state, summary);
     try {
       await navigator.clipboard.writeText(txt);
-      flash('Resumen copiado');
+      flash('Resumen copiado para enviar por WhatsApp');
       setShowCopyBox(false);
     } catch (e) {
       setCopyBoxText(txt);
@@ -79,7 +81,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     const filename = `Auditoria_${tiendaClean}_${fechaClean}.txt`;
     const txt = generateSummaryText(state, summary);
     onDownload(filename, txt);
-    flash('Resumen descargado');
+    flash('Reporte descargado correctamente');
   };
 
   const handleSaveClick = async () => {
@@ -89,7 +91,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     }
 
     if (!state.fields.f_tienda.trim()) {
-      flash('Completá el nombre de la tienda antes de guardar.', true);
+      flash('Por favor ingresá el nombre de la sucursal antes de guardar.', true);
       const input = document.getElementById('f_tienda');
       input?.focus();
       return;
@@ -107,9 +109,9 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
       const record = buildRecordToSave(state, summary, myId);
       const res = await onSave(record);
       if (res.ok) {
-        flash(`Auditoría de ${state.fields.f_tienda} guardada`);
+        flash(`¡Auditoría de ${state.fields.f_tienda} guardada con éxito!`);
       } else {
-        flash(res.error || 'No se pudo guardar.', true);
+        flash(res.error || 'No se pudo guardar la auditoría.', true);
       }
     } catch (e) {
       flash('No se pudo guardar. Revisá la conexión y probá de nuevo.', true);
@@ -122,96 +124,119 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     onReset();
     setShowResetConfirm(false);
     setShowCopyBox(false);
-    flash('Auditoría nueva lista');
+    flash('Planilla restablecida para una nueva auditoría');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const saveBtnText = isSaving
-    ? 'Guardando…'
-    : saveArmed
-    ? `Guardar igual (faltan ${pendingCount})`
-    : 'Guardar auditoría';
-
   return (
-    <>
-      <div className="actions">
+    <div className="action-toolbar-container">
+      {/* Main Action Bar */}
+      <div className="action-buttons-grid">
         <button
-          className="btn"
+          className={`btn-action primary-save ${saveArmed ? 'is-armed' : ''}`}
           id="saveBtn"
           type="button"
           disabled={isSaving}
           onClick={handleSaveClick}
         >
-          {saveBtnText}
+          {saveArmed ? (
+            <>
+              <AlertTriangle size={18} />
+              <span>Guardar igual (faltan {pendingCount})</span>
+            </>
+          ) : isSaving ? (
+            <>
+              <span className="spinner-sm"></span>
+              <span>Guardando auditoría...</span>
+            </>
+          ) : (
+            <>
+              <Save size={18} />
+              <span>Guardar auditoría</span>
+            </>
+          )}
         </button>
 
         <button
-          className="btn ghost"
+          className="btn-action secondary-btn"
           id="copyBtn"
           type="button"
           onClick={handleCopySummary}
+          title="Copiar texto formateado para WhatsApp"
         >
-          Copiar resumen
+          <Share2 size={17} />
+          <span>Copiar para WhatsApp</span>
         </button>
 
         <button
-          className="btn ghost"
+          className="btn-action secondary-btn"
           id="dlBtn"
           type="button"
           onClick={handleDownloadSummary}
         >
-          Descargar resumen
+          <Download size={17} />
+          <span>Descargar TXT</span>
         </button>
 
         {!showResetConfirm ? (
           <button
-            className="btn ghost"
+            className="btn-action danger-subtle"
             id="resetBtn"
             type="button"
             onClick={() => setShowResetConfirm(true)}
+            title="Reiniciar planilla"
           >
-            Nueva auditoría
+            <RotateCcw size={17} />
+            <span>Nueva auditoría</span>
           </button>
         ) : (
-          <>
-            <button
-              className="btn danger"
-              id="resetYes"
-              type="button"
-              onClick={handleConfirmReset}
-            >
-              Sí, borrar todo
-            </button>
-            <button
-              className="btn ghost"
-              id="resetNo"
-              type="button"
-              onClick={() => setShowResetConfirm(false)}
-            >
-              Cancelar
-            </button>
-          </>
+          <div className="reset-confirm-box">
+            <span className="confirm-prompt">¿Borrar y empezar de cero?</span>
+            <div className="confirm-btns-row">
+              <button
+                className="btn btn-sm btn-danger"
+                id="resetYes"
+                type="button"
+                onClick={handleConfirmReset}
+              >
+                Sí, reiniciar
+              </button>
+              <button
+                className="btn btn-sm btn-outline"
+                id="resetNo"
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
-      {toast && (
-        <p className={`toast ${toast.isErr ? 'err' : ''}`} role="status">
-          {toast.msg}
-        </p>
+      {/* Access and System Notes */}
+      {saveNote && (
+        <div className="system-note-box">
+          <AlertTriangle size={16} />
+          <span>{saveNote}</span>
+        </div>
       )}
 
-      {saveNote && <p className="note">{saveNote}</p>}
-
+      {/* Manual copy fallback textarea */}
       {showCopyBox && (
-        <textarea
-          ref={copyBoxRef}
-          id="copyBox"
-          readOnly
-          aria-label="Resumen para copiar"
-          value={copyBoxText}
-          onChange={e => setCopyBoxText(e.target.value)}
-        />
+        <div className="manual-copy-container animate-fade-in">
+          <label htmlFor="copyBox">Seleccioná y copiá el texto:</label>
+          <textarea
+            ref={copyBoxRef}
+            id="copyBox"
+            readOnly
+            aria-label="Resumen para copiar"
+            value={copyBoxText}
+            onChange={e => setCopyBoxText(e.target.value)}
+            rows={8}
+          />
+        </div>
       )}
-    </>
+    </div>
   );
 };
