@@ -1,0 +1,26 @@
+# Configuración Apache / DonWeb cPanel para Single Page Application (React / Vite)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /operaciones/auditorias/
+  
+  # Si el archivo o carpeta solicitado existe, servirlo directamente
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  
+  # De lo contrario redirigir a index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Tipos MIME correctos para módulos JavaScript y estilos
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType text/css .css
+  AddType image/svg+xml .svg
+</IfModule>
+
+# Habilitar compresión Gzip para mayor velocidad
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
