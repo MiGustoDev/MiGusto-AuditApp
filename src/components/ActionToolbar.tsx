@@ -124,7 +124,6 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     onReset();
     setShowResetConfirm(false);
     setShowCopyBox(false);
-    flash('Planilla restablecida para una nueva auditoría');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

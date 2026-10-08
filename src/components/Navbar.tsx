@@ -21,6 +21,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="app-header">
       <div className="header-inner">
+        {/* Left: Brand Logo & Store */}
         <div className="brand-section">
           <div className="brand-logo-wrap">
             <img src="/logo.png" alt="Mi Gusto" className="brand-logo-img" />
@@ -33,13 +34,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        <nav className="main-nav" aria-label="Navegación principal">
+        {/* Center: Main Navigation Tabs */}
+        <nav className="main-nav-centered" aria-label="Navegación principal">
           <button
             type="button"
             className={`nav-tab ${activeTab === 'audit' ? 'active' : ''}`}
             onClick={() => onTabChange('audit')}
           >
-            <ClipboardCheck size={18} className="tab-icon" />
+            <ClipboardCheck size={17} className="tab-icon" />
             <span>Auditar</span>
           </button>
 
@@ -48,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`nav-tab ${activeTab === 'summary' ? 'active' : ''}`}
             onClick={() => onTabChange('summary')}
           >
-            <BarChart3 size={18} className="tab-icon" />
+            <BarChart3 size={17} className="tab-icon" />
             <span>Resultados</span>
             {deviationsCount > 0 && (
               <span className="tab-badge warn" title={`${deviationsCount} desvíos detectados`}>
@@ -62,13 +64,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => onTabChange('history')}
           >
-            <History size={18} className="tab-icon" />
+            <History size={17} className="tab-icon" />
             <span>Historial</span>
             {historyCount > 0 && (
               <span className="tab-badge neutral">{historyCount}</span>
             )}
           </button>
         </nav>
+
+        {/* Right placeholder to keep center navigation perfectly balanced */}
+        <div className="header-right-spacer" aria-hidden="true" />
       </div>
     </header>
   );

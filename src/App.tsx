@@ -12,9 +12,7 @@ import { DeviationsList } from './components/DeviationsList';
 import { ActionToolbar } from './components/ActionToolbar';
 import { HistorySection } from './components/HistorySection';
 import { PhotoLightbox } from './components/PhotoLightbox';
-import { BottomQuickBar } from './components/BottomQuickBar';
-import { SEGMENTS, TOTAL_ITEMS } from './data/segments';
-import { buildRecordToSave } from './utils/formatters';
+import { SEGMENTS } from './data/segments';
 
 export function App() {
   const {
@@ -48,10 +46,6 @@ export function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState<ActiveTab>('audit');
   const [currentSegment, setCurrentSegment] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'focus' | 'all'>('focus');
-  const [openSegments, setOpenSegments] = useState<Record<number, boolean>>({
-    0: true
-  });
 
   // Always force Dark Mode
   useEffect(() => {
@@ -73,65 +67,9 @@ export function App() {
     }, isErr ? 6000 : 3200);
   };
 
-  const handleToggleSegment = (si: number) => {
-    setOpenSegments(prev => ({
-      ...prev,
-      [si]: !prev[si]
-    }));
-  };
-
   const handleSelectSegment = (si: number) => {
     setCurrentSegment(si);
-    if (viewMode === 'all') {
-      setOpenSegments(prev => ({
-        ...prev,
-        [si]: true
-      }));
-      setTimeout(() => {
-        const el = document.getElementById(`seg${si + 1}`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
-    }
-  };
-
-  // Find next unanswered item across segments
-  const handleJumpToNextPending = () => {
-    let targetSi = -1;
-    let targetIi = -1;
-
-    for (let offset = 0; offset < SEGMENTS.length; offset++) {
-      const si = (currentSegment + offset) % SEGMENTS.length;
-      const seg = SEGMENTS[si];
-      for (let ii = 0; ii < seg.items.length; ii++) {
-        const key = `${si}-${ii}`;
-        if (!state.answers[key]) {
-          targetSi = si;
-          targetIi = ii;
-          break;
-        }
-      }
-      if (targetSi !== -1) break;
-    }
-
-    if (targetSi !== -1) {
-      setCurrentSegment(targetSi);
-      setActiveTab('audit');
-      if (viewMode === 'all') {
-        setOpenSegments(prev => ({ ...prev, [targetSi]: true }));
-      }
-      setTimeout(() => {
-        const itemEl = document.getElementById(`item-${targetSi}-${targetIi}`);
-        if (itemEl) {
-          itemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          itemEl.classList.add('highlight-pulse');
-          setTimeout(() => itemEl.classList.remove('highlight-pulse'), 1800);
-        }
-      }, 100);
-      flashMessage(`Ítem ${targetSi + 1}.${targetIi + 1} (${SEGMENTS[targetSi].short})`);
-    } else {
-      flashMessage('¡Todos los ítems están completos!');
-      setActiveTab('summary');
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCopyText = async (txt: string) => {
@@ -143,11 +81,9 @@ export function App() {
     }
   };
 
-  const pendingCount = TOTAL_ITEMS - summary.done;
-
   return (
     <div className="app-container">
-      {/* Top Navbar */}
+      {/* Top Navbar with Centered Links */}
       <Navbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -177,73 +113,43 @@ export function App() {
               summary={summary}
               currentSegment={currentSegment}
               onSelectSegment={handleSelectSegment}
-              onNextPending={handleJumpToNextPending}
               onJumpToSummary={() => setActiveTab('summary')}
-              pendingCount={pendingCount}
-              viewMode={viewMode}
-              onToggleViewMode={() => setViewMode(prev => (prev === 'focus' ? 'all' : 'focus'))}
             />
 
             {/* 2. SEGUNDO: Datos del local en una sola línea con título */}
             <GeneralFields fields={state.fields} onFieldChange={setField} />
 
-            {/* 3. TERCERO: Contenido de la fase / segmento */}
+            {/* 3. TERCERO: Contenido de la fase activa */}
             <div id="segments" className="segments-viewport">
-              {viewMode === 'focus' ? (
-                // Focus Mode: Show only current segment
-                <SegmentCard
-                  key={currentSegment}
-                  segmentData={summary.rows[currentSegment]}
-                  answers={state.answers}
-                  photos={state.photos}
-                  isOpen={true}
-                  isFocused={true}
-                  onChoice={setChoice}
-                  onPartialScore={setPartialScore}
-                  onAdjustPartialScore={adjustPartialScore}
-                  onObservation={setObservation}
-                  onMarkPendingAsOk={markSegmentPendingAsOk}
-                  onAddPhoto={addPhoto}
-                  onRemovePhoto={removePhoto}
-                  onViewPhoto={setLightboxSrc}
-                  onFlashMessage={flashMessage}
-                  uploadAsset={uploadAsset}
-                  onNextSegment={() => {
-                    if (currentSegment < SEGMENTS.length - 1) {
-                      handleSelectSegment(currentSegment + 1);
-                    }
-                  }}
-                  onPrevSegment={() => {
-                    if (currentSegment > 0) {
-                      handleSelectSegment(currentSegment - 1);
-                    }
-                  }}
-                  onJumpToSummary={() => setActiveTab('summary')}
-                />
-              ) : (
-                // All Mode: Show all segments
-                summary.rows.map(segCalc => (
-                  <SegmentCard
-                    key={segCalc.si}
-                    segmentData={segCalc}
-                    answers={state.answers}
-                    photos={state.photos}
-                    isOpen={!!openSegments[segCalc.si]}
-                    isFocused={false}
-                    onToggle={() => handleToggleSegment(segCalc.si)}
-                    onChoice={setChoice}
-                    onPartialScore={setPartialScore}
-                    onAdjustPartialScore={adjustPartialScore}
-                    onObservation={setObservation}
-                    onMarkPendingAsOk={markSegmentPendingAsOk}
-                    onAddPhoto={addPhoto}
-                    onRemovePhoto={removePhoto}
-                    onViewPhoto={setLightboxSrc}
-                    onFlashMessage={flashMessage}
-                    uploadAsset={uploadAsset}
-                  />
-                ))
-              )}
+              <SegmentCard
+                key={currentSegment}
+                segmentData={summary.rows[currentSegment]}
+                answers={state.answers}
+                photos={state.photos}
+                isOpen={true}
+                isFocused={true}
+                onChoice={setChoice}
+                onPartialScore={setPartialScore}
+                onAdjustPartialScore={adjustPartialScore}
+                onObservation={setObservation}
+                onMarkPendingAsOk={markSegmentPendingAsOk}
+                onAddPhoto={addPhoto}
+                onRemovePhoto={removePhoto}
+                onViewPhoto={setLightboxSrc}
+                onFlashMessage={flashMessage}
+                uploadAsset={uploadAsset}
+                onNextSegment={() => {
+                  if (currentSegment < SEGMENTS.length - 1) {
+                    handleSelectSegment(currentSegment + 1);
+                  }
+                }}
+                onPrevSegment={() => {
+                  if (currentSegment > 0) {
+                    handleSelectSegment(currentSegment - 1);
+                  }
+                }}
+                onJumpToSummary={() => setActiveTab('summary')}
+              />
             </div>
           </div>
         )}
@@ -313,28 +219,10 @@ export function App() {
         )}
       </main>
 
-      {/* Floating Bottom Quick Bar */}
-      <BottomQuickBar
-        summary={summary}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onNextPending={handleJumpToNextPending}
-        onSaveClick={async () => {
-          if (!state.fields.f_tienda.trim()) {
-            flashMessage('Ingresá el nombre de la sucursal antes de guardar.', true);
-            setActiveTab('audit');
-            return;
-          }
-          const record = buildRecordToSave(state, summary, myId);
-          const res = await saveAudit(record);
-          if (res.ok) {
-            flashMessage(`Auditoría de ${state.fields.f_tienda} guardada correctamente`);
-            setActiveTab('history');
-          } else {
-            flashMessage(res.error || 'Error al guardar.', true);
-          }
-        }}
-      />
+      {/* Subtle Footer */}
+      <footer className="app-footer">
+        <p>© Desarrollado por el Departamento de Sistemas de Mi Gusto | Todos los derechos reservados.</p>
+      </footer>
 
       {/* Toast Notification Alert */}
       {toast && (

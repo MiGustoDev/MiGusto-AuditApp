@@ -3,42 +3,33 @@ import { AuditSummary } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE, TOTAL_ITEMS, SEGMENTS } from '../data/segments';
 import { 
-  Zap, 
   CheckCircle2, 
   AlertTriangle, 
   XCircle,
   Check,
-  Layers,
-  List
+  FileText
 } from 'lucide-react';
 
 interface ScoreBoardProps {
   summary: AuditSummary;
   currentSegment: number;
   onSelectSegment: (index: number) => void;
-  onNextPending?: () => void;
-  onJumpToSummary?: () => void;
-  pendingCount: number;
-  viewMode: 'focus' | 'all';
-  onToggleViewMode: () => void;
+  onJumpToSummary: () => void;
 }
 
 export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   summary,
   currentSegment,
   onSelectSegment,
-  onNextPending,
-  onJumpToSummary,
-  pendingCount,
-  viewMode,
-  onToggleViewMode
+  onJumpToSummary
 }) => {
   const percentScore = Math.min(100, Math.max(0, summary.total));
   const completionPercent = Math.round((summary.done / TOTAL_ITEMS) * 100);
+  const isComplete = summary.isComplete;
 
   return (
     <div className="scoreboard-card" id="board">
-      {/* Top Header: Score circle, status and quick buttons */}
+      {/* Top Header: Score circle, status and Ver Informe button */}
       <div className="scoreboard-main">
         <div className="score-primary">
           <div className="score-circle-wrapper">
@@ -97,58 +88,30 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
         </div>
 
         <div className="score-actions">
-          {pendingCount > 0 ? (
-            <button
-              type="button"
-              className="quick-jump-btn pending-btn"
-              onClick={onNextPending}
-              title="Saltar automáticamente al próximo ítem sin responder"
-            >
-              <Zap size={15} className="zap-icon" />
-              <span>Siguiente pendiente ({pendingCount})</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="quick-jump-btn done-btn"
-              onClick={onJumpToSummary}
-            >
-              <CheckCircle2 size={15} />
-              <span>Auditoría completa · Ver informe</span>
-            </button>
-          )}
+          <button
+            type="button"
+            className={`btn-report-action ${isComplete ? 'is-enabled' : 'is-disabled'}`}
+            disabled={!isComplete}
+            onClick={onJumpToSummary}
+            title={isComplete ? 'Ver informe completo de resultados' : `Faltan ${TOTAL_ITEMS - summary.done} ítems para ver el informe`}
+          >
+            <FileText size={16} />
+            <span>Ver informe</span>
+          </button>
         </div>
       </div>
 
-      {/* Integrated Phases Section (Visualizadas todas sin scroll horizontal) */}
+      {/* Integrated Phases Section (Sin botón Ver Todas, todas las 9 fases visibles) */}
       <div className="phases-integrated-container">
         <div className="phases-section-header">
           <span className="phases-section-title">Fases de Auditoría ({SEGMENTS.length})</span>
-          <button
-            type="button"
-            className="view-toggle-btn"
-            onClick={onToggleViewMode}
-            title={viewMode === 'focus' ? 'Ver todas las fases juntas' : 'Ver una fase a la vez'}
-          >
-            {viewMode === 'focus' ? (
-              <>
-                <Layers size={13} />
-                <span>Modo Enfocado</span>
-              </>
-            ) : (
-              <>
-                <List size={13} />
-                <span>Ver Todas</span>
-              </>
-            )}
-          </button>
         </div>
 
         <div className="phases-grid-all">
           {SEGMENTS.map((seg, si) => {
             const rowData = summary.rows[si];
-            const isComplete = rowData ? rowData.segDone === seg.items.length : false;
-            const isActive = viewMode === 'focus' && currentSegment === si;
+            const isSegComplete = rowData ? rowData.segDone === seg.items.length : false;
+            const isActive = currentSegment === si;
             const doneItems = rowData ? rowData.segDone : 0;
             const totalItems = seg.items.length;
             const realPts = rowData ? rowData.real : 0;
@@ -157,20 +120,20 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
               <button
                 key={si}
                 type="button"
-                className={`phase-card-btn ${isActive ? 'active' : ''} ${isComplete ? 'is-complete' : ''}`}
+                className={`phase-card-btn ${isActive ? 'active' : ''} ${isSegComplete ? 'is-complete' : ''}`}
                 onClick={() => onSelectSegment(si)}
               >
                 <div className="phase-card-header">
                   <span className="phase-number-tag">
-                    {isComplete ? <Check size={12} className="phase-check-icon" /> : `${si + 1}`}
+                    {isSegComplete ? <Check size={12} className="phase-check-icon" /> : `${si + 1}`}
                   </span>
                   <span className="phase-name-text">{seg.short}</span>
                 </div>
 
                 <div className="phase-card-bottom num">
                   <span className="phase-items-count">{doneItems}/{totalItems}</span>
-                  <span className={`phase-pct-tag ${isComplete ? 'done' : doneItems > 0 ? 'prog' : 'empty'}`}>
-                    {isComplete ? '100%' : `${f2(realPts)} pts`}
+                  <span className={`phase-pct-tag ${isSegComplete ? 'done' : doneItems > 0 ? 'prog' : 'empty'}`}>
+                    {isSegComplete ? '100%' : `${f2(realPts)} pts`}
                   </span>
                 </div>
               </button>
