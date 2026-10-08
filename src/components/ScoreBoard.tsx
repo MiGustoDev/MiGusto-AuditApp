@@ -30,6 +30,18 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   const boardRef = useRef<HTMLDivElement>(null);
   const prevScoreRef = useRef(summary.total);
 
+  // 3-color tier shared between circle and progress bar:
+  // 1. < 50%: Amber / Warm Yellow (inicio)
+  // 2. 50% - 84%: Cyan / Sky Blue (mitad alcanzada)
+  // 3. >= 85%: Emerald Green (tramo final / aprobado)
+  const getProgressTier = (pct: number) => {
+    if (pct >= 85) return 'tier-green';
+    if (pct >= 50) return 'tier-cyan';
+    return 'tier-amber';
+  };
+
+  const currentTier = getProgressTier(completionPercent);
+
   // Stagger animation on phase buttons on initial mount
   useEffect(() => {
     if (boardRef.current) {
@@ -67,7 +79,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
                 r="42"
               />
               <circle
-                className={`score-circle-progress ${summary.statusClass}`}
+                className={`score-circle-progress ${currentTier}`}
                 cx="50"
                 cy="50"
                 r="42"
@@ -105,7 +117,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
               </div>
               <div className="custom-progress-bar">
                 <div
-                  className={`custom-progress-fill ${completionPercent === 100 ? 'done' : ''}`}
+                  className={`custom-progress-fill ${currentTier}`}
                   style={{ width: `${completionPercent}%` }}
                 />
               </div>
