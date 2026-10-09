@@ -33,7 +33,32 @@ export const Navbar: React.FC<NavbarProps> = ({
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const handleOpenMenu = () => {
+    setIsClosing(false);
+    setIsSideMenuOpen(true);
+  };
+
+  const handleCloseMenu = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsSideMenuOpen(false);
+      setIsClosing(false);
+    }, 220);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSideMenuOpen && !isClosing) {
+        handleCloseMenu();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSideMenuOpen, isClosing]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleNavClick = (tab: ActiveTab) => {
     onTabChange(tab);
-    setIsSideMenuOpen(false);
+    handleCloseMenu();
   };
 
   return (
@@ -109,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 className="btn-side-menu-trigger"
-                onClick={() => setIsSideMenuOpen(true)}
+                onClick={handleOpenMenu}
                 aria-label="Abrir menú de opciones"
                 title="Menú de navegación"
               >
@@ -195,8 +220,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Side Menu Drawer Component */}
       {isSideMenuOpen && (
-        <div className="side-menu-backdrop" onClick={() => setIsSideMenuOpen(false)}>
-          <div className="side-menu-drawer" onClick={e => e.stopPropagation()}>
+        <div className={`side-menu-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={handleCloseMenu}>
+          <div className={`side-menu-drawer ${isClosing ? 'is-closing' : ''}`} onClick={e => e.stopPropagation()}>
             <div className="side-menu-header">
               <div className="brand-logo-wrap">
                 <img src="logo.png" alt="Mi Gusto" className="brand-logo-img" />
@@ -204,7 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 className="icon-btn-subtle"
-                onClick={() => setIsSideMenuOpen(false)}
+                onClick={handleCloseMenu}
                 aria-label="Cerrar menú"
               >
                 <X size={20} />
