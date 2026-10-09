@@ -164,6 +164,7 @@ input[type=number]::-webkit-outer-spin-button,
 input[type=number],
 .no-spinners {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Date input in dark mode */
@@ -1168,7 +1169,6 @@ input[type="date"],
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  flex-content: 1;
   flex: 1;
 }
 
