@@ -210,11 +210,11 @@ export function useSharedStorage() {
   }, [fetchSupabaseRecords, loadLocalRecords]);
 
   const saveAudit = useCallback(
-    async (record: SavedAuditRecord): Promise<{ ok: boolean; error?: string }> => {
+    async (record: SavedAuditRecord): Promise<{ ok: boolean; error?: string; id?: string }> => {
       // 1. Supabase save
       if (dbType === 'supabase' && supabase) {
         try {
-          const payload = {
+          const payload: any = {
             tienda: record.tienda,
             auditor: record.auditor,
             fecha: record.fecha,
@@ -234,17 +234,21 @@ export function useSharedStorage() {
             savedAt: record.savedAt || new Date().toISOString()
           };
 
+          if (record._id && !record._id.startsWith('local_')) {
+            payload.id = record._id;
+          }
+
           const { data, error } = await supabase
             .from('audits')
-            .insert([payload])
+            .upsert([payload])
             .select();
 
           if (error) {
-            console.error('Supabase insert error:', error);
+            console.error('Supabase upsert error:', error);
             // Backup to local storage on error
-            const id = 'local_' + Date.now();
+            const id = record._id || ('local_' + Date.now());
             const fallbackRecord: SavedAuditRecord = { ...record, _id: id };
-            const updated = [fallbackRecord, ...records];
+            const updated = [fallbackRecord, ...records.filter(r => r._id !== id)];
             setRecords(updated);
             saveLocalRecords(updated);
             return {
@@ -253,17 +257,19 @@ export function useSharedStorage() {
             };
           }
 
+          let savedId = record._id;
           if (data && data[0]) {
+            savedId = data[0].id?.toString() || data[0]._id;
             const savedItem: SavedAuditRecord = {
               ...record,
-              _id: data[0].id?.toString() || data[0]._id
+              _id: savedId
             };
-            setRecords(prev => [savedItem, ...prev.filter(r => r._id !== savedItem._id)]);
+            setRecords(prev => [savedItem, ...prev.filter(r => r._id !== savedId)]);
           } else {
             await fetchSupabaseRecords();
           }
 
-          return { ok: true };
+          return { ok: true, id: savedId };
         } catch (e: any) {
           console.error('Error saving to Supabase:', e);
           return { ok: false, error: e?.message || 'Error al conectar con la base de datos Supabase.' };
@@ -277,7 +283,7 @@ export function useSharedStorage() {
         }
         try {
           await dbRef.current.collection('audits').add(record);
-          return { ok: true };
+          return { ok: true, id: record._id };
         } catch (e: any) {
           if (e && e.code === 'invalid_argument') {
             setCanWrite(false);
@@ -291,15 +297,18 @@ export function useSharedStorage() {
       }
 
       // 3. Local storage fallback
-      const id = 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      const id = record._id || ('local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7));
       const recordWithId: SavedAuditRecord = {
         ...record,
         _id: id
       };
-      const updated = [recordWithId, ...records];
-      setRecords(updated);
-      saveLocalRecords(updated);
-      return { ok: true };
+      setRecords(prev => {
+        const filtered = prev.filter(r => r._id !== id);
+        const updatedList = [recordWithId, ...filtered];
+        saveLocalRecords(updatedList);
+        return updatedList;
+      });
+      return { ok: true, id };
     },
     [dbType, isClaudeEnv, canWrite, myId, records, saveLocalRecords, fetchSupabaseRecords]
   );
@@ -312,12 +321,16 @@ export function useSharedStorage() {
           const { error } = await supabase.from('audits').delete().eq('id', id);
           if (error) {
             console.error('Supabase delete error:', error);
-            return { ok: false, error: error.message };
           }
-          setRecords(prev => prev.filter(r => r._id !== id));
+          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          setRecords(updated);
+          saveLocalRecords(updated);
           return { ok: true };
         } catch (e: any) {
-          return { ok: false, error: e?.message || 'No se pudo eliminar de la base de datos.' };
+          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          setRecords(updated);
+          saveLocalRecords(updated);
+          return { ok: true };
         }
       }
 
@@ -325,14 +338,20 @@ export function useSharedStorage() {
       if (isClaudeEnv && dbRef.current) {
         try {
           await dbRef.current.collection('audits').doc(id).delete();
+          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          setRecords(updated);
+          saveLocalRecords(updated);
           return { ok: true };
         } catch (e) {
-          return { ok: false, error: 'No se pudo eliminar. Probá de nuevo.' };
+          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          setRecords(updated);
+          saveLocalRecords(updated);
+          return { ok: true };
         }
       }
 
       // 3. Local storage delete
-      const updated = records.filter(r => r._id !== id);
+      const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
       setRecords(updated);
       saveLocalRecords(updated);
       return { ok: true };

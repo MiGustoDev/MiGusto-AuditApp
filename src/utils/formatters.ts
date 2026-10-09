@@ -146,35 +146,80 @@ export const generateSummaryText = (
   const f = state.fields;
   const lines: string[] = [];
 
-  lines.push('AUDITORÍA OPERATIVA MI GUSTO');
-  lines.push(`Tienda: ${f.f_tienda || '-'} | Fecha: ${f.f_fecha || '-'} | Auditor/a: ${f.f_auditor || '-'}`);
-  lines.push(`Colaboradores: ${f.f_colab || '-'} | Personal a cargo: ${f.f_cargo || '-'} | Unidades vendidas: ${f.f_unid || '-'}`);
-  lines.push('');
-  lines.push(`RESULTADO: ${f2(summary.total)} / 100 → ${(summary.isComplete ? summary.verdictTitle : summary.statusLabel).toUpperCase()} (aprueba con ${PASS_SCORE})`);
+  lines.push('INFORME DE AUDITORÍA OPERATIVA — MI GUSTO');
+  lines.push('==================================================');
+  lines.push(`Sucursal: ${f.f_tienda || '-'} | Fecha: ${f.f_fecha || '-'} | Auditor/a: ${f.f_auditor || '-'}`);
+  lines.push(`Colaboradores: ${f.f_colab || '-'} | Personal a cargo: ${f.f_cargo || '-'} | Unidades: ${f.f_unid || '-'}`);
+  lines.push('--------------------------------------------------');
+  lines.push(`DICTAMEN OPERATIVO: ${(summary.isComplete ? summary.verdictTitle : summary.statusLabel).toUpperCase()}`);
+  lines.push(`PUNTAJE FINAL: ${f2(summary.total)} / 100 pts`);
+  lines.push('--------------------------------------------------');
   lines.push('');
 
+  lines.push('RENDIMIENTO POR FASES OPERATIVAS:');
   summary.rows.forEach(r => {
-    lines.push(`${r.si + 1}. ${r.seg.name}: ${f2(r.real)} / ${f2(r.ideal)} (${((r.real / r.ideal) * 100).toFixed(1)}%)`);
+    const pct = r.ideal ? ((r.real / r.ideal) * 100).toFixed(0) : '0';
+    lines.push(`• ${r.si + 1}. ${r.seg.name}: ${f2(r.real)} de ${f2(r.ideal)} pts (${pct}%)`);
   });
+  lines.push('');
 
+  lines.push(`DESVÍOS DETECTADOS (${summary.devs.length}):`);
   if (summary.devs.length) {
-    lines.push('');
-    lines.push('DESVÍOS:');
     summary.devs.forEach(d => {
-      lines.push(`- ${d.n} (${f2(d.got)}/${f2(d.ideal)}) ${d.t}${d.a.o ? ' — Obs.: ' + d.a.o : ''}`);
+      lines.push(`• Ítem ${d.n} (${f2(d.got)}/${f2(d.ideal)} pts) — ${d.t}`);
+      if (d.a.o) {
+        lines.push(`   Observación: ${d.a.o}`);
+      }
     });
+  } else {
+    lines.push('✓ Sin desvíos registrados en esta auditoría.');
   }
 
-  const pend = TOTAL_ITEMS - summary.done;
-  if (pend) {
-    lines.push('');
-    lines.push(`Ítems sin evaluar: ${pend}`);
+  lines.push('');
+  lines.push('==================================================');
+  lines.push('Documento generado automáticamente — Departamento de Sistemas Mi Gusto');
+
+  return lines.join('\n');
+};
+
+export const generateRecordSummaryText = (r: SavedAuditRecord): string => {
+  const lines: string[] = [];
+
+  lines.push('INFORME DE AUDITORÍA OPERATIVA — MI GUSTO');
+  lines.push('==================================================');
+  lines.push(`Sucursal: ${r.tienda || '-'} | Fecha: ${fmtDate(r.fecha)}`);
+  lines.push(`Auditor/a: ${r.auditor || '-'}`);
+  if (r.personalACargo || r.colaboradores || r.unidades) {
+    lines.push(`Personal a cargo: ${r.personalACargo || '-'} | Colaboradores: ${r.colaboradores || '-'} | Unidades: ${r.unidades || '-'}`);
+  }
+  lines.push('--------------------------------------------------');
+  lines.push(`DICTAMEN OPERATIVO: ${(r.estado || ((r.total || 0) >= PASS_SCORE ? 'APROBADO' : 'NO APROBADO')).toUpperCase()}`);
+  lines.push(`PUNTAJE FINAL: ${f2(r.total)} / 100 pts`);
+  lines.push('--------------------------------------------------');
+  lines.push('');
+
+  lines.push('RENDIMIENTO POR FASES OPERATIVAS:');
+  (r.segmentos || []).forEach(s => {
+    const pct = s.ideal ? ((s.real / s.ideal) * 100).toFixed(0) : '0';
+    lines.push(`• ${s.n}. ${s.nombre}: ${f2(s.real)} de ${f2(s.ideal)} pts (${pct}%)`);
+  });
+  lines.push('');
+
+  lines.push(`DESVÍOS DETECTADOS (${(r.desvios || []).length}):`);
+  if (r.desvios && r.desvios.length > 0) {
+    r.desvios.forEach(d => {
+      lines.push(`• Ítem ${d.n} (${f2(d.real)}/${f2(d.ideal)} pts) — ${d.texto}`);
+      if (d.obs) {
+        lines.push(`   Observación: ${d.obs}`);
+      }
+    });
+  } else {
+    lines.push('✓ Sin desvíos registrados en esta auditoría.');
   }
 
-  const nf = Object.values(state.photos || {}).reduce((t, a) => t + a.length, 0);
-  if (nf) {
-    lines.push(`Fotos adjuntas: ${nf} (ver en el historial de la planilla)`);
-  }
+  lines.push('');
+  lines.push('==================================================');
+  lines.push('Documento generado automáticamente — Departamento de Sistemas Mi Gusto');
 
   return lines.join('\n');
 };

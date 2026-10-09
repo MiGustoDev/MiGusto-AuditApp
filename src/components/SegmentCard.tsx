@@ -39,6 +39,7 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
   onPartialScore,
   onAdjustPartialScore,
   onObservation,
+  onMarkPendingAsOk,
   onAddPhoto,
   onRemovePhoto,
   onViewPhoto,
@@ -80,26 +81,40 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
         role={!isFocused ? "button" : undefined}
       >
         <div className="seg-header-info">
-          <div className="seg-title-row">
+          <div className="seg-header-top-meta">
             <span className="seg-index-tag">{si + 1} de {SEGMENTS.length}</span>
-            <h2 className="seg-name-heading">{seg.name}</h2>
+            <div className="seg-header-badges">
+              {segDone < seg.items.length && (
+                <button
+                  type="button"
+                  className="btn-quick-fill-ok"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMarkPendingAsOk(si);
+                  }}
+                  title="Marcar resto del segmento como Cumple"
+                >
+                  <span>Todo OK ({seg.items.length - segDone})</span>
+                </button>
+              )}
+              <span className={`seg-score-pill num ${getPctBadgeClass()}`}>
+                {isStarted ? `${pct.toFixed(0)}%` : '0%'}
+              </span>
+              {!isFocused && onToggle && (
+                <button type="button" className="icon-btn-subtle" aria-label="Colapsar o expandir">
+                  {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+              )}
+            </div>
           </div>
+          
+          <h2 className="seg-name-heading">{seg.name}</h2>
+          
           <p className="seg-stats-text">
             <span>Evaluados: <b>{segDone}/{seg.items.length}</b></span>
             <span className="dot-sep">·</span>
             <span>Puntos: <b>{f2(real)}</b> / {f2(ideal)}</span>
           </p>
-        </div>
-
-        <div className="seg-header-right">
-          <span className={`seg-score-pill num ${getPctBadgeClass()}`}>
-            {isStarted ? `${pct.toFixed(0)}%` : '0%'}
-          </span>
-          {!isFocused && onToggle && (
-            <button type="button" className="icon-btn-subtle" aria-label="Colapsar o expandir">
-              {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
-          )}
         </div>
       </div>
 
@@ -159,10 +174,10 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
               ) : (
                 <button
                   type="button"
-                  className="btn btn-success"
+                  className="btn btn-success btn-submit-audit"
                   onClick={onJumpToSummary}
                 >
-                  <span>Ver resultados finales</span>
+                  <span>Enviar Evaluación</span>
                   <ArrowRight size={18} />
                 </button>
               )}

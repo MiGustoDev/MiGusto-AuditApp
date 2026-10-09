@@ -7,13 +7,15 @@ import { Navbar, ActiveTab } from './components/Navbar';
 import { ScoreBoard } from './components/ScoreBoard';
 import { GeneralFields } from './components/GeneralFields';
 import { SegmentCard } from './components/SegmentCard';
-import { SummaryTable } from './components/SummaryTable';
 import { VerdictCard } from './components/VerdictCard';
 import { DeviationsList } from './components/DeviationsList';
 import { ActionToolbar } from './components/ActionToolbar';
 import { HistorySection } from './components/HistorySection';
 import { PhotoLightbox } from './components/PhotoLightbox';
-import { SEGMENTS } from './data/segments';
+import { AuditCharts } from './components/AuditCharts';
+import { UnfinishedAuditModal } from './components/UnfinishedAuditModal';
+import { SEGMENTS, TOTAL_ITEMS } from './data/segments';
+import { buildRecordToSave } from './utils/formatters';
 
 export function App() {
   const {
@@ -47,8 +49,71 @@ export function App() {
   // Navigation state
   const [activeTab, setActiveTab] = useState<ActiveTab>('audit');
   const [currentSegment, setCurrentSegment] = useState<number>(0);
+  const [auditStep, setAuditStep] = useState<'setup' | 'evaluate'>(() => {
+    return Boolean(state.fields.f_tienda && state.fields.f_auditor) ? 'evaluate' : 'setup';
+  });
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
+  const [showUnfinishedModal, setShowUnfinishedModal] = useState<boolean>(() => {
+    // Show modal if an audit was in progress (has items done or store name set) when re-entering app
+    const hasProgress = summary.done > 0 || Boolean(state.fields.f_tienda.trim());
+    return hasProgress;
+  });
+
   const tabContentRef = useRef<HTMLDivElement>(null);
   const toastRef = useRef<HTMLDivElement>(null);
+
+  const isAuditStarted = summary.done > 0;
+  const [currentAuditId, setCurrentAuditId] = useState<string | null>(null);
+
+  const handleStartAudit = () => {
+    if (!state.fields.f_tienda.trim() || !state.fields.f_auditor.trim()) {
+      flashMessage('Por favor completá los campos obligatorios: Tienda y Auditor/a', true);
+      return;
+    }
+    setAuditStep('evaluate');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditSetup = () => {
+    setAuditStep('setup');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveAuditRecord = async (recordToSave: ReturnType<typeof buildRecordToSave>) => {
+    if (currentAuditId) {
+      recordToSave._id = currentAuditId;
+    }
+    const res = await saveAudit(recordToSave);
+    if (res.ok && res.id) {
+      setCurrentAuditId(res.id);
+    }
+    return res;
+  };
+
+  // Trigger 3-second evaluation spinner transition, auto-save to history, and prepare clean slate
+  const handleJumpToSummaryWithLoading = async () => {
+    setIsEvaluating(true);
+    
+    // Build and save record automatically to history
+    try {
+      const record = buildRecordToSave(state, summary, myId);
+      if (currentAuditId) {
+        record._id = currentAuditId;
+      }
+      const res = await saveAudit(record);
+      if (res.ok && res.id) {
+        setCurrentAuditId(res.id);
+      }
+    } catch (err) {
+      console.error('Error auto-saving evaluation:', err);
+    }
+
+    setTimeout(() => {
+      setIsEvaluating(false);
+      setActiveTab('summary');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 3000);
+  };
 
   // Animate tab switch smoothly with GSAP
   useEffect(() => {
@@ -84,12 +149,24 @@ export function App() {
   // Activate wake lock when items are being evaluated
   useWakeLock(summary.done > 0);
 
+  // Toast notification state & auto-dismiss timeout
   const flashMessage = (msg: string, isErr = false) => {
     setToast({ msg, isErr });
-    clearTimeout(toastTimeoutRef.current);
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     toastTimeoutRef.current = setTimeout(() => {
       setToast(null);
-    }, isErr ? 6000 : 3200);
+    }, isErr ? 4000 : 2500);
+  };
+
+  const handleFullReset = () => {
+    setCurrentAuditId(null);
+    resetAudit();
+    setAuditStep('setup');
+    setCurrentSegment(0);
+    setActiveTab('audit');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSelectSegment = (si: number) => {
@@ -108,13 +185,18 @@ export function App() {
 
   return (
     <div className="app-container">
-      {/* Top Navbar with Centered Links */}
+      {/* Top Navbar with Centered Links & Sticky Mobile Phases Bar */}
       <Navbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
         deviationsCount={summary.devs.length}
         historyCount={records.length}
         storeName={state.fields.f_tienda}
+        currentSegment={currentSegment}
+        onSelectSegment={handleSelectSegment}
+        summary={summary}
+        onEditSetup={handleEditSetup}
+        onLogoClick={handleFullReset}
       />
 
       <main className="wrap">
@@ -133,49 +215,57 @@ export function App() {
         {/* ============================================================ */}
         {activeTab === 'audit' && (
           <div ref={tabContentRef} className="audit-tab-content">
-            {/* 1. PRIMERO: Círculo de progreso + Fases integradas sin scroll */}
-            <ScoreBoard
-              summary={summary}
-              currentSegment={currentSegment}
-              onSelectSegment={handleSelectSegment}
-              onJumpToSummary={() => setActiveTab('summary')}
-            />
-
-            {/* 2. SEGUNDO: Datos del local en una sola línea con título */}
-            <GeneralFields fields={state.fields} onFieldChange={setField} />
-
-            {/* 3. TERCERO: Contenido de la fase activa */}
-            <div id="segments" className="segments-viewport">
-              <SegmentCard
-                key={currentSegment}
-                segmentData={summary.rows[currentSegment]}
-                answers={state.answers}
-                photos={state.photos}
-                isOpen={true}
-                isFocused={true}
-                onChoice={setChoice}
-                onPartialScore={setPartialScore}
-                onAdjustPartialScore={adjustPartialScore}
-                onObservation={setObservation}
-                onMarkPendingAsOk={markSegmentPendingAsOk}
-                onAddPhoto={addPhoto}
-                onRemovePhoto={removePhoto}
-                onViewPhoto={setLightboxSrc}
-                onFlashMessage={flashMessage}
-                uploadAsset={uploadAsset}
-                onNextSegment={() => {
-                  if (currentSegment < SEGMENTS.length - 1) {
-                    handleSelectSegment(currentSegment + 1);
-                  }
-                }}
-                onPrevSegment={() => {
-                  if (currentSegment > 0) {
-                    handleSelectSegment(currentSegment - 1);
-                  }
-                }}
-                onJumpToSummary={() => setActiveTab('summary')}
+            {/* STEP 1: PRE-AUDIT SETUP FORM */}
+            {auditStep === 'setup' ? (
+              <GeneralFields
+                fields={state.fields}
+                onFieldChange={setField}
+                onStartAudit={handleStartAudit}
+                isStarted={isAuditStarted}
               />
-            </div>
+            ) : (
+              /* STEP 2: EVALUATION MODE (NO GENERAL FIELDS PANEL VISIBLE) */
+              <>
+                <ScoreBoard
+                  summary={summary}
+                  currentSegment={currentSegment}
+                  onSelectSegment={handleSelectSegment}
+                  onJumpToSummary={handleJumpToSummaryWithLoading}
+                />
+
+                <div id="segments" className="segments-viewport">
+                  <SegmentCard
+                    key={currentSegment}
+                    segmentData={summary.rows[currentSegment]}
+                    answers={state.answers}
+                    photos={state.photos}
+                    isOpen={true}
+                    isFocused={true}
+                    onChoice={setChoice}
+                    onPartialScore={setPartialScore}
+                    onAdjustPartialScore={adjustPartialScore}
+                    onObservation={setObservation}
+                    onMarkPendingAsOk={markSegmentPendingAsOk}
+                    onAddPhoto={addPhoto}
+                    onRemovePhoto={removePhoto}
+                    onViewPhoto={setLightboxSrc}
+                    onFlashMessage={flashMessage}
+                    uploadAsset={uploadAsset}
+                    onNextSegment={() => {
+                      if (currentSegment < SEGMENTS.length - 1) {
+                        handleSelectSegment(currentSegment + 1);
+                      }
+                    }}
+                    onPrevSegment={() => {
+                      if (currentSegment > 0) {
+                        handleSelectSegment(currentSegment - 1);
+                      }
+                    }}
+                    onJumpToSummary={handleJumpToSummaryWithLoading}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -184,18 +274,21 @@ export function App() {
         {/* ============================================================ */}
         {activeTab === 'summary' && (
           <div ref={tabContentRef} className="summary-tab-content">
-            <VerdictCard summary={summary} />
+            <VerdictCard summary={summary} onFinishAudit={handleFullReset} />
 
-            <SummaryTable
+            {/* CHARTS & ANALYTICS SECTION */}
+            <AuditCharts
               summary={summary}
-              onSelectSegment={si => {
-                setCurrentSegment(si);
-                setActiveTab('audit');
-              }}
+              storeName={state.fields.f_tienda}
+              auditorName={state.fields.f_auditor}
             />
+
+
 
             <DeviationsList
               deviations={summary.devs}
+              photos={state.photos}
+              onViewPhoto={setLightboxSrc}
               onSelectDeviation={itemNum => {
                 const [sStr] = itemNum.split('.');
                 const si = parseInt(sStr, 10) - 1;
@@ -212,11 +305,16 @@ export function App() {
               canWrite={canWrite}
               myId={myId}
               hasDownloadsApi={hasDownloadsApi}
-              onSave={saveAudit}
-              onReset={resetAudit}
+              onSave={handleSaveAuditRecord}
+              onReset={handleFullReset}
               onDownload={downloadFile}
               toast={toast}
               setToast={setToast}
+              flashMessage={flashMessage}
+              onGoToHistory={() => {
+                setActiveTab('history');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               saveNote={
                 isClaudeEnv && canWrite === false
                   ? 'Tenés acceso de solo lectura: podés copiar el informe pero no guardar cambios en el servidor.'
@@ -258,6 +356,45 @@ export function App() {
 
       {/* Photo Zoom Lightbox Modal */}
       <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
+      {/* 3-Second Fullscreen Evaluation Loading Screen */}
+      {isEvaluating && (
+        <div className="evaluating-fullscreen-backdrop" role="dialog" aria-modal="true">
+          <div className="evaluating-card">
+            <div className="evaluating-spinner-wrap">
+              <div className="evaluating-ring" />
+              <img src="logo.png" alt="Mi Gusto" className="evaluating-logo-center" />
+            </div>
+            <h3 className="evaluating-title">Evaluando sucursal...</h3>
+            <p className="evaluating-subtitle">
+              Analizando cumplimiento de {summary.done} ítems y procesando indicadores de calidad.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Unfinished Audit Recovery Modal Prompt */}
+      {showUnfinishedModal && (
+        <UnfinishedAuditModal
+          storeName={state.fields.f_tienda}
+          auditorName={state.fields.f_auditor}
+          doneCount={summary.done}
+          totalCount={TOTAL_ITEMS}
+          onContinue={() => {
+            setShowUnfinishedModal(false);
+            if (state.fields.f_tienda && state.fields.f_auditor) {
+              setAuditStep('evaluate');
+            } else {
+              setAuditStep('setup');
+            }
+          }}
+          onDiscard={() => {
+            setShowUnfinishedModal(false);
+            handleFullReset();
+          }}
+        />
+      )}
+
     </div>
   );
 }

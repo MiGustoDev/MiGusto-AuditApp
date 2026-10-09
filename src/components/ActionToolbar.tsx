@@ -1,23 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuditState, AuditSummary } from '../types/audit';
 import { TOTAL_ITEMS } from '../data/segments';
-import { buildRecordToSave, generateSummaryText, getTodayDate } from '../utils/formatters';
-import { Save, Download, RotateCcw, AlertTriangle, Share2 } from 'lucide-react';
+import { buildRecordToSave } from '../utils/formatters';
+import { Save, RotateCcw, AlertTriangle } from 'lucide-react';
 
 interface ActionToolbarProps {
   state: AuditState;
   summary: AuditSummary;
   canWrite: boolean | null;
   myId?: string;
-  hasDownloadsApi: boolean;
+  hasDownloadsApi?: boolean;
   onSave: (record: ReturnType<typeof buildRecordToSave>) => Promise<{ ok: boolean; error?: string }>;
   onReset: () => void;
-  onDownload: (filename: string, text: string) => void;
+  onDownload?: (filename: string, text: string) => void;
   toast?: { msg: string; isErr: boolean } | null;
   setToast: (toast: { msg: string; isErr: boolean } | null) => void;
+  flashMessage?: (msg: string, isErr?: boolean) => void;
   saveNote?: string;
   onJumpToSummary?: () => void;
   activeTab?: string;
+  onGoToHistory?: () => void;
 }
 
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -25,19 +27,15 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   summary,
   canWrite,
   myId,
-  hasDownloadsApi: _hasDownloadsApi,
   onSave,
   onReset,
-  onDownload,
   setToast,
+  flashMessage,
   saveNote
 }) => {
   const [saveArmed, setSaveArmed] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
-  const [showCopyBox, setShowCopyBox] = useState<boolean>(false);
-  const [copyBoxText, setCopyBoxText] = useState<string>('');
-  const copyBoxRef = useRef<HTMLTextAreaElement>(null);
 
   const pendingCount = TOTAL_ITEMS - summary.done;
 
@@ -53,35 +51,11 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   }, [saveArmed]);
 
   const flash = (msg: string, isErr = false) => {
-    setToast({ msg, isErr });
-  };
-
-  const handleCopySummary = async () => {
-    const txt = generateSummaryText(state, summary);
-    try {
-      await navigator.clipboard.writeText(txt);
-      flash('Resumen copiado para enviar por WhatsApp');
-      setShowCopyBox(false);
-    } catch (e) {
-      setCopyBoxText(txt);
-      setShowCopyBox(true);
-      setTimeout(() => {
-        if (copyBoxRef.current) {
-          copyBoxRef.current.focus();
-          copyBoxRef.current.select();
-        }
-      }, 50);
-      flash('Seleccioná y copiá el texto de abajo');
+    if (flashMessage) {
+      flashMessage(msg, isErr);
+    } else {
+      setToast({ msg, isErr });
     }
-  };
-
-  const handleDownloadSummary = () => {
-    const tiendaClean = (state.fields.f_tienda || 'tienda').replace(/[^\w-]+/g, '_');
-    const fechaClean = state.fields.f_fecha || getTodayDate();
-    const filename = `Auditoria_${tiendaClean}_${fechaClean}.txt`;
-    const txt = generateSummaryText(state, summary);
-    onDownload(filename, txt);
-    flash('Reporte descargado correctamente');
   };
 
   const handleSaveClick = async () => {
@@ -110,6 +84,9 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
       const res = await onSave(record);
       if (res.ok) {
         flash(`¡Auditoría de ${state.fields.f_tienda} guardada con éxito!`);
+        setTimeout(() => {
+          onReset();
+        }, 500);
       } else {
         flash(res.error || 'No se pudo guardar la auditoría.', true);
       }
@@ -123,7 +100,6 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   const handleConfirmReset = () => {
     onReset();
     setShowResetConfirm(false);
-    setShowCopyBox(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -156,41 +132,20 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
           )}
         </button>
 
-        <button
-          className="btn-action secondary-btn"
-          id="copyBtn"
-          type="button"
-          onClick={handleCopySummary}
-          title="Copiar texto formateado para WhatsApp"
-        >
-          <Share2 size={17} />
-          <span>Copiar para WhatsApp</span>
-        </button>
-
-        <button
-          className="btn-action secondary-btn"
-          id="dlBtn"
-          type="button"
-          onClick={handleDownloadSummary}
-        >
-          <Download size={17} />
-          <span>Descargar TXT</span>
-        </button>
-
         {!showResetConfirm ? (
           <button
             className="btn-action danger-subtle"
             id="resetBtn"
             type="button"
             onClick={() => setShowResetConfirm(true)}
-            title="Reiniciar planilla"
+            title="Reiniciar planilla y comenzar nueva sucursal"
           >
             <RotateCcw size={17} />
             <span>Nueva auditoría</span>
           </button>
         ) : (
           <div className="reset-confirm-box">
-            <span className="confirm-prompt">¿Borrar y empezar de cero?</span>
+            <span className="confirm-prompt">¿Borrar datos y empezar de cero?</span>
             <div className="confirm-btns-row">
               <button
                 className="btn btn-sm btn-danger"
@@ -218,22 +173,6 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
         <div className="system-note-box">
           <AlertTriangle size={16} />
           <span>{saveNote}</span>
-        </div>
-      )}
-
-      {/* Manual copy fallback textarea */}
-      {showCopyBox && (
-        <div className="manual-copy-container animate-fade-in">
-          <label htmlFor="copyBox">Seleccioná y copiá el texto:</label>
-          <textarea
-            ref={copyBoxRef}
-            id="copyBox"
-            readOnly
-            aria-label="Resumen para copiar"
-            value={copyBoxText}
-            onChange={e => setCopyBoxText(e.target.value)}
-            rows={8}
-          />
         </div>
       )}
     </div>

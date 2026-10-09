@@ -1,31 +1,42 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { AuditFields } from '../types/audit';
-import { Store, User, Users, ShoppingBag, Briefcase } from 'lucide-react';
+import { Store, User, Users, ShoppingBag, Briefcase, Play } from 'lucide-react';
 import { CustomDatePicker } from './CustomDatePicker';
 
 interface GeneralFieldsProps {
   fields: AuditFields;
   onFieldChange: (field: keyof AuditFields, value: string) => void;
+  onStartAudit: () => void;
+  isStarted: boolean;
 }
 
-export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldChange }) => {
+export const GeneralFields: React.FC<GeneralFieldsProps> = ({
+  fields,
+  onFieldChange,
+  onStartAudit,
+  isStarted
+}) => {
   const containerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (containerRef.current) {
       gsap.fromTo(
-        containerRef.current.querySelectorAll('.field-item'),
-        { opacity: 0, y: 6 },
-        { opacity: 1, y: 0, duration: 0.3, stagger: 0.03, ease: 'power2.out' }
+        containerRef.current.querySelectorAll('.field-item, .start-audit-banner'),
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.35, stagger: 0.04, ease: 'power2.out' }
       );
     }
-  }, []);
+  }, [isStarted]);
 
   return (
-    <section ref={containerRef} className="general-card-inline card" aria-label="Datos del local">
-      <div className="general-section-title-row">
-        <span className="general-section-title">Datos del local</span>
+    <section ref={containerRef} className="general-card-setup card" aria-label="Nivel 0: Datos de la Sucursal">
+      <div className="setup-header-row">
+        <div className="setup-title-group">
+          <span className="setup-step-pill">Nivel 0</span>
+          <h2 className="setup-main-title">Sucursal</h2>
+          <p className="setup-sub-text">Cargá los datos de la sucursal y del auditor para iniciar la auditoría.</p>
+        </div>
       </div>
 
       <div className="fields-single-line">
@@ -33,7 +44,7 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
         <div className="field-item">
           <label htmlFor="f_tienda">
             <Store size={14} className="field-icon" />
-            <span>Tienda <span className="req-star">*</span></span>
+            <span>Tienda / Sucursal <span className="req-star">*</span></span>
           </label>
           <input
             id="f_tienda"
@@ -57,14 +68,14 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
             autoComplete="name"
             value={fields.f_auditor}
             onChange={e => onFieldChange('f_auditor', e.target.value)}
-            placeholder="Nombre"
+            placeholder="Tu nombre"
           />
         </div>
 
         {/* 3. Fecha con Custom DatePicker */}
         <div className="field-item">
           <label>
-            <span>Fecha</span>
+            <span>Fecha de auditoría</span>
           </label>
           <CustomDatePicker
             value={fields.f_fecha}
@@ -76,7 +87,7 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
         <div className="field-item">
           <label htmlFor="f_cargo">
             <Briefcase size={14} className="field-icon" />
-            <span>A cargo</span>
+            <span>Persona a cargo</span>
           </label>
           <input
             id="f_cargo"
@@ -84,7 +95,7 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
             autoComplete="off"
             value={fields.f_cargo}
             onChange={e => onFieldChange('f_cargo', e.target.value)}
-            placeholder="Encargado/a"
+            placeholder="Encargado/a de turno"
           />
         </div>
 
@@ -92,7 +103,7 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
         <div className="field-item">
           <label htmlFor="f_colab">
             <Users size={14} className="field-icon" />
-            <span>Colaboradores</span>
+            <span>Cant. Colaboradores</span>
           </label>
           <input
             id="f_colab"
@@ -101,7 +112,7 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
             min="0"
             value={fields.f_colab}
             onChange={e => onFieldChange('f_colab', e.target.value)}
-            placeholder="Cant."
+            placeholder="Ej. 4"
             className="no-spinners"
           />
         </div>
@@ -110,7 +121,7 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
         <div className="field-item">
           <label htmlFor="f_unid">
             <ShoppingBag size={14} className="field-icon" />
-            <span>Unidades</span>
+            <span>Unidades vendidas</span>
           </label>
           <input
             id="f_unid"
@@ -119,10 +130,21 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({ fields, onFieldCha
             min="0"
             value={fields.f_unid}
             onChange={e => onFieldChange('f_unid', e.target.value)}
-            placeholder="Unid."
+            placeholder="Ej. 350"
             className="no-spinners"
           />
         </div>
+      </div>
+
+      <div className="setup-actions-footer">
+        <button
+          type="button"
+          className="btn-start-audit-primary"
+          onClick={onStartAudit}
+        >
+          <span>{isStarted ? 'Continuar Auditoría' : 'Iniciar Auditoría'}</span>
+          <Play size={18} fill="currentColor" />
+        </button>
       </div>
     </section>
   );

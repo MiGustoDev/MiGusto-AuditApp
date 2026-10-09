@@ -131,10 +131,10 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             className={`btn-report-action ${isComplete ? 'is-enabled' : 'is-disabled'}`}
             disabled={!isComplete}
             onClick={onJumpToSummary}
-            title={isComplete ? 'Ver informe completo de resultados' : `Faltan ${TOTAL_ITEMS - summary.done} ítems para ver el informe`}
+            title={isComplete ? 'Enviar evaluación y generar informe completo' : `Faltan ${TOTAL_ITEMS - summary.done} ítems para enviar la evaluación`}
           >
             <FileText size={16} />
-            <span>Ver informe</span>
+            <span>{isComplete ? 'Enviar Evaluación' : 'Ver informe'}</span>
           </button>
         </div>
       </div>

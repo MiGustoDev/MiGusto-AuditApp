@@ -1,20 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SavedAuditRecord } from '../types/audit';
-import { f2, fmtDate } from '../utils/formatters';
+import { f2, fmtDate, generateRecordSummaryText } from '../utils/formatters';
 import { TOTAL_ITEMS, PASS_SCORE } from '../data/segments';
+import { downloadAuditPDF } from '../utils/pdfExport';
+import { AuditCharts } from './AuditCharts';
 import { 
   Search, 
   Store, 
   User, 
   Calendar, 
-  Copy, 
   Trash2, 
   ChevronDown, 
   ChevronUp, 
   AlertCircle,
   CheckCircle2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FileText,
+  Mail,
+  ArrowLeft
 } from 'lucide-react';
 
 interface HistorySectionProps {
@@ -29,7 +33,6 @@ interface HistorySectionProps {
 export const HistorySection: React.FC<HistorySectionProps> = ({
   records,
   loading,
-  isAdmin,
   onDeleteRecord,
   onCopyText,
   onViewPhoto
@@ -53,8 +56,8 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
     if (listRef.current && filteredList.length > 0) {
       gsap.fromTo(
         listRef.current.querySelectorAll('.history-card'),
-        { opacity: 0, y: 10, scale: 0.98 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.3, stagger: 0.035, ease: 'power2.out' }
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.3, stagger: 0.035, ease: 'power2.out', clearProps: 'all' }
       );
     }
   }, [filteredList.length, searchTerm]);
@@ -82,6 +85,20 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
 
   return (
     <section className="history-wrapper card" aria-label="Historial de auditorías">
+      {/* Subtle Volver button placed above Historial de Auditorías */}
+      {expandedId && (
+        <div className="subtle-back-top-bar animate-fade-in">
+          <button
+            type="button"
+            className="btn-subtle-back"
+            onClick={() => setExpandedId(null)}
+          >
+            <ArrowLeft size={14} />
+            <span>Volver al historial</span>
+          </button>
+        </div>
+      )}
+
       <div className="section-header-row">
         <div>
           <h2 className="section-title">Historial de Auditorías</h2>
@@ -194,31 +211,55 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
 
                 {isExpanded && (
                   <div className="history-card-details animate-slide-down">
-                    {/* Segment scores mini table */}
-                    <div className="hist-details-table-wrap">
-                      <table className="hist-table">
-                        <thead>
-                          <tr>
-                            <th>Segmento</th>
-                            <th className="num-col">Ideal</th>
-                            <th className="num-col">Real</th>
-                            <th className="num-col">%</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(r.segmentos || []).map(s => (
-                            <tr key={s.n}>
-                              <td>{s.n}. {s.nombre}</td>
-                              <td className="num-col num">{f2(s.ideal)}</td>
-                              <td className="num-col num font-bold">{f2(s.real)}</td>
-                              <td className="num-col num">
-                                {s.ideal ? ((s.real / s.ideal) * 100).toFixed(0) : '0'}%
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    {/* Top bar to return to collapsed history list */}
+                    <div className="hist-back-nav-row">
+                      <button
+                        type="button"
+                        className="btn-hist-back"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedId(null);
+                        }}
+                      >
+                        <ArrowLeft size={16} />
+                        <span>Volver</span>
+                      </button>
                     </div>
+
+                    {/* FULL CHARTS & EXECUTIVE ANALYTICS COMPONENT */}
+                    <AuditCharts
+                      summary={{
+                        total: r.total || 0,
+                        done: r.evaluados || 180,
+                        pendingIdeal: 0,
+                        maxPossible: 100,
+                        isComplete: r.completa ?? true,
+                        rows: (r.segmentos || []).map((s, idx) => ({
+                          seg: { name: s.nombre, short: s.nombre, items: [] },
+                          si: idx,
+                          ideal: s.ideal,
+                          real: s.real,
+                          pct: s.ideal ? (s.real / s.ideal) * 100 : 0,
+                          segDone: 1
+                        })),
+                        devs: (r.desvios || []).map(d => ({
+                          k: d.n,
+                          n: d.n,
+                          t: d.texto,
+                          a: { s: 'no', o: d.obs },
+                          ideal: d.ideal,
+                          got: d.real
+                        })),
+                        statusClass: (r.total || 0) >= PASS_SCORE ? 'ok' : 'bad',
+                        statusLabel: r.estado || ((r.total || 0) >= PASS_SCORE ? 'Dictamen Operativo: APROBADO' : 'Dictamen Operativo: NO APROBADO'),
+                        verdictTitle: r.estado || ((r.total || 0) >= PASS_SCORE ? 'APROBADO' : 'NO APROBADO'),
+                        verdictText: ''
+                      }}
+                      storeName={r.tienda}
+                      auditorName={r.auditor}
+                    />
+
+
 
                     {/* Deviations */}
                     <div className="hist-deviations-block">
@@ -245,14 +286,22 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                     {/* Photos */}
                     {r.fotos && r.fotos.length > 0 && (
                       <div className="hist-photos-block">
-                        <h4 className="hist-subhead">Fotos adjuntas ({r.fotos.length})</h4>
+                        <h4 className="hist-subhead">Fotos adjuntas de evidencia ({r.fotos.length})</h4>
                         <div className="hist-photos-grid">
                           {r.fotos.map((p, idx) => {
                             const src = resolvePhotoSrc(p.id);
                             return (
-                              <div key={idx} className="hist-photo-item" onClick={() => onViewPhoto(src)}>
-                                <img src={src} alt={`Ítem ${p.n}`} loading="lazy" />
-                                <span className="hist-photo-label">Ítem {p.n}</span>
+                              <div 
+                                key={idx} 
+                                className="hist-photo-item" 
+                                onClick={() => onViewPhoto(src)}
+                                title={`Click para ver foto completa de Ítem ${p.n}: ${p.texto || ''}`}
+                              >
+                                <img src={src} alt={`Ítem ${p.n} - ${p.texto || ''}`} loading="lazy" />
+                                <div className="hist-photo-label-box">
+                                  <span className="hist-photo-item-badge">Ítem {p.n}</span>
+                                  {p.texto && <span className="hist-photo-item-desc">{p.texto}</span>}
+                                </div>
                               </div>
                             );
                           })}
@@ -273,43 +322,67 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                     <div className="hist-actions-bar">
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline"
-                        onClick={() => onCopyText(r.resumen || '')}
+                        className="btn btn-sm btn-primary-pdf"
+                        onClick={() => {
+                          downloadAuditPDF({
+                            tienda: r.tienda || 'Sucursal',
+                            auditor: r.auditor || 'Auditor',
+                            fecha: r.fecha || '',
+                            total: r.total || 0,
+                            estado: r.estado || 'NO APROBADO',
+                            desvios: r.desvios,
+                            segmentos: r.segmentos,
+                            fotos: r.fotos,
+                            personalACargo: r.personalACargo,
+                            colaboradores: r.colaboradores,
+                            unidades: r.unidades
+                          });
+                        }}
                       >
-                        <Copy size={14} />
-                        <span>Copiar resumen</span>
+                        <FileText size={15} />
+                        <span>Descargar PDF</span>
                       </button>
 
-                      {isAdmin && r._id && (
-                        confirmDeleteId !== r._id ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary-mail"
+                        onClick={() => {
+                          const emailText = generateRecordSummaryText(r);
+                          onCopyText(emailText);
+                        }}
+                      >
+                        <Mail size={15} />
+                        <span>Copiar para mail</span>
+                      </button>
+
+                      {confirmDeleteId !== id ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger-subtle"
+                          onClick={() => setConfirmDeleteId(id)}
+                        >
+                          <Trash2 size={14} />
+                          <span>Eliminar registro</span>
+                        </button>
+                      ) : (
+                        <div className="confirm-delete-row">
+                          <span className="confirm-txt">¿Eliminar definitivamente?</span>
                           <button
                             type="button"
-                            className="btn btn-sm btn-danger-subtle"
-                            onClick={() => setConfirmDeleteId(r._id!)}
+                            className="btn btn-sm btn-danger"
+                            disabled={deletingId === id}
+                            onClick={() => handleDelete(id)}
                           >
-                            <Trash2 size={14} />
-                            <span>Eliminar registro</span>
+                            {deletingId === id ? 'Eliminando...' : 'Sí, eliminar'}
                           </button>
-                        ) : (
-                          <div className="confirm-delete-row">
-                            <span className="confirm-txt">¿Eliminar definitivamente?</span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-danger"
-                              disabled={deletingId === r._id}
-                              onClick={() => handleDelete(r._id!)}
-                            >
-                              {deletingId === r._id ? 'Eliminando...' : 'Sí, eliminar'}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline"
-                              onClick={() => setConfirmDeleteId(null)}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        )
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline"
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

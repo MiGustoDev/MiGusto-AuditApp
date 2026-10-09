@@ -6,12 +6,26 @@ import { CheckCircle2, MessageSquare } from 'lucide-react';
 
 interface DeviationsListProps {
   deviations: Deviation[];
+  photos?: Record<string, string[]>;
   onSelectDeviation?: (deviationNumber: string) => void;
+  onViewPhoto?: (photoSrc: string) => void;
 }
 
-export const DeviationsList: React.FC<DeviationsListProps> = ({ deviations, onSelectDeviation }) => {
+export const DeviationsList: React.FC<DeviationsListProps> = ({ 
+  deviations, 
+  photos = {}, 
+  onSelectDeviation,
+  onViewPhoto 
+}) => {
   const pointsLost = deviations.reduce((sum, d) => sum + (d.ideal - d.got), 0);
   const containerRef = useRef<HTMLElement>(null);
+
+  const resolvePhotoSrc = (id: string) => {
+    if (id.startsWith('data:') || id.startsWith('http://') || id.startsWith('https://') || id.startsWith('blob:')) {
+      return id;
+    }
+    return `/_blob/${id}`;
+  };
 
   useEffect(() => {
     if (containerRef.current && deviations.length > 0) {
@@ -52,6 +66,7 @@ export const DeviationsList: React.FC<DeviationsListProps> = ({ deviations, onSe
           {deviations.map((d) => {
             const isZero = d.got === 0;
             const diff = d.ideal - d.got;
+            const itemPhotos = photos[d.k] || [];
 
             return (
               <div 
@@ -79,6 +94,27 @@ export const DeviationsList: React.FC<DeviationsListProps> = ({ deviations, onSe
                   <div className="dev-observation-box">
                     <MessageSquare size={14} className="obs-icon" />
                     <span className="obs-content"><b>Obs:</b> {d.a.o}</span>
+                  </div>
+                )}
+
+                {itemPhotos.length > 0 && (
+                  <div className="dev-photos-box" onClick={e => e.stopPropagation()}>
+                    <span className="dev-photos-title">Fotos adjuntas ({itemPhotos.length}):</span>
+                    <div className="dev-photos-grid">
+                      {itemPhotos.map((photoId, idx) => {
+                        const src = resolvePhotoSrc(photoId);
+                        return (
+                          <div 
+                            key={idx} 
+                            className="dev-photo-thumb"
+                            onClick={() => onViewPhoto?.(src)}
+                            title="Click para ampliar imagen"
+                          >
+                            <img src={src} alt={`Evidencia de ítem ${d.n}`} loading="lazy" />
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>

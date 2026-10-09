@@ -222,6 +222,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
             type="file"
             className="sr-only"
             accept="image/*"
+            capture="environment"
             multiple
             tabIndex={-1}
             aria-hidden="true"
