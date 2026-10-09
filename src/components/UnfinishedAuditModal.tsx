@@ -19,7 +19,7 @@ export const UnfinishedAuditModal: React.FC<UnfinishedAuditModalProps> = ({
   onDiscard,
 }) => {
   return (
-    <div className="evaluating-fullscreen-backdrop" role="dialog" aria-modal="true">
+    <div className="unfinished-modal-backdrop" role="dialog" aria-modal="true">
       <div className="unfinished-modal-card">
         <div className="unfinished-icon-wrap">
           <AlertTriangle size={36} className="unfinished-icon" />

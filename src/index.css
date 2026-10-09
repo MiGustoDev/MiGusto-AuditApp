@@ -3829,10 +3829,24 @@ html, body {
 /* ==========================================================================
    UNFINISHED AUDIT MODAL STYLES
    ========================================================================== */
+.unfinished-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(11, 15, 25, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease-out;
+}
+
 .unfinished-modal-card {
   background: var(--surface);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   border-radius: var(--radius-xl);
   padding: 28px 24px;
   max-width: 440px;
@@ -3892,13 +3906,18 @@ html, body {
 
 .unfinished-actions {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
 }
 
 .btn-modal-continue {
-  flex: 1.2;
-  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -3906,23 +3925,25 @@ html, body {
   color: #ffffff;
   border: none;
   border-radius: var(--radius-lg);
-  padding: 12px 18px;
+  padding: 10px 20px;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
 }
 
 .btn-modal-continue:hover {
-  background: #be123c;
+  background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.45);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45);
 }
 
 .btn-modal-discard {
-  flex: 1;
-  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -3930,10 +3951,11 @@ html, body {
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #fca5a5;
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
+  padding: 10px 18px;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
@@ -3943,9 +3965,4 @@ html, body {
   color: #ffffff;
 }
 
-@media (max-width: 480px) {
-  .unfinished-actions {
-    flex-direction: column;
-  }
-}
 
