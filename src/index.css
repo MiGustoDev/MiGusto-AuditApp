@@ -2607,10 +2607,14 @@ html, body {
   max-width: 1440px;
   margin: 0 auto;
   padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .phases-rail-container::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 .header-phase-chip {
@@ -2630,6 +2634,17 @@ html, body {
   transition: all var(--transition-fast);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+}
+
+.header-phase-chip:focus,
+.header-phase-chip:focus-visible,
+.header-phase-chip:active,
+.header-phase-chip.level-zero-chip:focus,
+.header-phase-chip.level-zero-chip:focus-visible,
+.header-phase-chip.level-zero-chip:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .header-phase-chip:hover {
@@ -2641,7 +2656,8 @@ html, body {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .header-phase-chip.is-complete {
@@ -2993,6 +3009,20 @@ html, body {
   gap: 6px;
 }
 
+.setup-title-heading-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setup-title-heading-row .setup-step-pill {
+  order: 1;
+}
+
+.setup-title-heading-row .setup-main-title {
+  order: 2;
+}
+
 .setup-step-pill {
   align-self: flex-start;
   font-size: 0.72rem;
@@ -3055,6 +3085,92 @@ html, body {
 
 .btn-start-audit-primary:active {
   transform: scale(0.97);
+}
+
+@media (max-width: 680px) {
+  /* Quitar apariencia de navbar a las cápsulas de segmentos */
+  .app-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .header-inner {
+    background: rgba(19, 27, 46, 0.95);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .header-phases-subbar {
+    background: transparent !important;
+    border: none !important;
+    border-top: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    padding: 10px 0 !important;
+    width: 100% !important;
+  }
+
+  /* Cápsulas de borde a borde sin limitantes y sin barra de scroll */
+  .phases-rail-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 0 !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .phases-rail-container::-webkit-scrollbar,
+  .header-phases-subbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  .setup-title-heading-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .setup-title-heading-row .setup-main-title {
+    order: 1;
+    font-size: 1.35rem;
+    margin: 0;
+  }
+
+  .setup-title-heading-row .setup-step-pill {
+    order: 2;
+    align-self: center;
+    margin: 0;
+    font-size: 0.72rem;
+    padding: 3px 9px;
+  }
+
+  .setup-actions-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+
+  .btn-start-audit-primary {
+    width: auto;
+    max-width: max-content;
+    padding: 10px 20px;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
 }
 
 .current-store-pill.clickable {
