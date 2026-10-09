@@ -33,6 +33,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 25);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Auto-scroll active phase button into view smoothly on horizontal rail
   useEffect(() => {
@@ -138,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Sticky Phases Rail inside header for Audit View */}
         {activeTab === 'audit' && onSelectSegment && summary && (
-          <div className="header-phases-subbar">
+          <div className={`header-phases-subbar ${isScrolled ? 'is-scrolled-hidden' : ''}`}>
             <div className="phases-rail-container" ref={phasesRailRef}>
               {/* Nivel 0: Sucursal Chip */}
               {onEditSetup && (

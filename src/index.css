@@ -2933,10 +2933,15 @@ html, body {
     align-items: stretch;
   }
   .score-actions {
-    justify-content: stretch;
+    justify-content: center;
+    margin-top: 12px;
   }
   .btn-report-action {
-    width: 100%;
+    width: auto;
+    max-width: max-content;
+    padding: 9px 20px;
+    font-size: 0.88rem;
+    white-space: nowrap;
   }
   .main-nav-centered {
     padding: 2px;
@@ -2945,11 +2950,27 @@ html, body {
     padding: 5px 10px;
     font-size: 0.78rem;
   }
-  .btn-choice span {
-    font-size: 0.78rem;
-  }
   .segment-items-stack {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .item-card {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+  .item-description-text {
+    font-size: 0.88rem;
+    line-height: 1.42;
+  }
+  .btn-choice {
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.84rem;
+  }
+  .btn-camera {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
   }
 }
 
@@ -3110,8 +3131,23 @@ html, body {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
-    padding: 10px 0 !important;
+    padding: 8px 0 10px 0 !important;
     width: 100% !important;
+    max-height: 80px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding 0.28s ease, transform 0.25s ease;
+    transform: translateY(0);
+  }
+
+  .header-phases-subbar.is-scrolled-hidden {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(-8px);
   }
 
   /* Cápsulas de borde a borde sin limitantes y sin barra de scroll */

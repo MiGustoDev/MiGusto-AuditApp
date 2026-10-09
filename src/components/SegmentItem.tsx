@@ -5,7 +5,6 @@ import { fmtPts } from '../utils/formatters';
 import { blobToDataUrl, shrinkImage } from '../utils/image';
 import { 
   Check, 
-  Slash, 
   X, 
   Camera, 
   Plus, 
@@ -181,16 +180,6 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
           >
             <Check size={16} className="choice-icon" />
             <span>Cumple</span>
-          </button>
-
-          <button
-            type="button"
-            className={`btn-choice choice-partial ${currentStatus === 'partial' ? 'active' : ''}`}
-            onClick={e => handleChoiceClick('partial', e.currentTarget)}
-            aria-pressed={currentStatus === 'partial'}
-          >
-            <Slash size={14} className="choice-icon rotate-icon" />
-            <span>Parcial</span>
           </button>
 
           <button
