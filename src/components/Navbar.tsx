@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ClipboardCheck, History, Check, Edit3, Menu, X, Store } from 'lucide-react';
-import { SEGMENTS } from '../data/segments';
+import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles } from 'lucide-react';
+import { getSegments } from '../data/segments';
 import { AuditSummary } from '../types/audit';
 
 export type ActiveTab = 'audit' | 'summary' | 'history';
@@ -16,6 +16,8 @@ interface NavbarProps {
   summary?: AuditSummary;
   onEditSetup?: () => void;
   onLogoClick?: () => void;
+  auditMode?: 'normal' | 'experience';
+  onModeChange?: (mode: 'normal' | 'experience') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -28,7 +30,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectSegment,
   summary,
   onEditSetup,
-  onLogoClick
+  onLogoClick,
+  auditMode = 'normal',
+  onModeChange
 }) => {
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
@@ -88,52 +92,56 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Center/Right: Single "Auditar" Indicator + Menu Hamburger Button when in Audit mode */}
+          {/* Center: When in Audit show Mode Switcher, when in History show "Historial" title */}
           {activeTab === 'audit' ? (
-            <div className="audit-active-nav-bar">
-              <div className="single-audit-pill">
-                <ClipboardCheck size={16} />
-                <span>Auditar</span>
+            onModeChange && (
+              <div className="header-center-mode-wrap">
+                <div className="audit-mode-switcher-pill" role="group" aria-label="Tipo de auditoría">
+                  <button
+                    type="button"
+                    className={`mode-btn ${auditMode === 'normal' ? 'active' : ''}`}
+                    onClick={() => onModeChange('normal')}
+                    title="Auditoría Normal Estándar (9 fases)"
+                  >
+                    <span>Normal</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-btn experience ${auditMode === 'experience' ? 'active' : ''}`}
+                    onClick={() => onModeChange('experience')}
+                    title="Auditoría Mi Gusto Experience (12 fases)"
+                  >
+                    <Sparkles size={13} className="mode-sparkle-icon" />
+                    <span>Experience</span>
+                  </button>
+                </div>
               </div>
-
-              <button
-                type="button"
-                className="btn-side-menu-trigger"
-                onClick={() => setIsSideMenuOpen(true)}
-                aria-label="Abrir menú de opciones"
-                title="Menú de navegación"
-              >
-                <Menu size={20} />
-                {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
-              </button>
-            </div>
+            )
           ) : (
-            /* Standard navigation tabs when in Summary or History mode */
-            <nav className="main-nav-centered" aria-label="Navegación principal">
-              <button
-                type="button"
-                className="nav-tab"
-                onClick={() => handleNavClick('audit')}
-              >
-                <ClipboardCheck size={17} className="tab-icon" />
-                <span>Auditar</span>
-              </button>
-
-              <button
-                type="button"
-                className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
-                onClick={() => handleNavClick('history')}
-              >
-                <History size={17} className="tab-icon" />
+            <div className="header-center-mode-wrap">
+              <div className="header-single-title-pill">
+                <History size={16} />
                 <span>Historial</span>
                 {historyCount > 0 && (
                   <span className="tab-badge neutral">{historyCount}</span>
                 )}
-              </button>
-            </nav>
+              </div>
+            </div>
           )}
 
-          {activeTab !== 'audit' && <div className="header-right-spacer" aria-hidden="true" />}
+          {/* Right Section: Universal Hamburger Menu Button */}
+          <div className="header-right-nav-section">
+            <button
+              type="button"
+              className="btn-side-menu-trigger"
+              onClick={() => setIsSideMenuOpen(true)}
+              aria-label="Abrir menú de opciones"
+              title="Menú de navegación"
+            >
+              <Menu size={20} />
+              {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
+            </button>
+          </div>
         </div>
 
         {/* Sticky Phases Rail inside header for Audit View */}
@@ -153,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
 
-              {SEGMENTS.map((seg, si) => {
+              {getSegments(auditMode).map((seg, si) => {
                 const rowData = summary.rows[si];
                 const isSegComplete = rowData ? rowData.segDone === seg.items.length : false;
                 const isActive = currentSegment === si;
@@ -218,7 +226,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div className="side-menu-item-left">
                   <ClipboardCheck size={18} />
-                  <span>Planilla de Auditoría</span>
+                  <span>Auditoría</span>
                 </div>
               </button>
 
@@ -229,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <div className="side-menu-item-left">
                   <History size={18} />
-                  <span>Historial de Auditorías</span>
+                  <span>Historial</span>
                 </div>
                 {historyCount > 0 && (
                   <span className="side-badge neutral">{historyCount}</span>

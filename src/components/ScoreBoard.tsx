@@ -14,6 +14,7 @@ import {
 interface ScoreBoardProps {
   summary: AuditSummary;
   currentSegment: number;
+  segments?: Array<{ name: string; short: string; items: any[] }>;
   onSelectSegment: (index: number) => void;
   onJumpToSummary: () => void;
 }
@@ -21,11 +22,14 @@ interface ScoreBoardProps {
 export const ScoreBoard: React.FC<ScoreBoardProps> = ({
   summary,
   currentSegment,
+  segments,
   onSelectSegment,
   onJumpToSummary
 }) => {
+  const activeSegs = segments || (summary.rows.length ? summary.rows.map(r => r.seg) : SEGMENTS);
+  const totalItemsCount = activeSegs.reduce((n, s) => n + s.items.length, 0) || TOTAL_ITEMS;
   const percentScore = Math.min(100, Math.max(0, summary.total));
-  const completionPercent = Math.round((summary.done / TOTAL_ITEMS) * 100);
+  const completionPercent = totalItemsCount > 0 ? Math.round((summary.done / totalItemsCount) * 100) : 0;
   const isComplete = summary.isComplete;
   const boardRef = useRef<HTMLDivElement>(null);
   const prevScoreRef = useRef(summary.total);
@@ -131,7 +135,7 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             className={`btn-report-action ${isComplete ? 'is-enabled' : 'is-disabled'}`}
             disabled={!isComplete}
             onClick={onJumpToSummary}
-            title={isComplete ? 'Enviar evaluación y generar informe completo' : `Faltan ${TOTAL_ITEMS - summary.done} ítems para enviar la evaluación`}
+            title={isComplete ? 'Enviar evaluación y generar informe completo' : `Faltan ${totalItemsCount - summary.done} ítems para enviar la evaluación`}
           >
             <FileText size={16} />
             <span>{isComplete ? 'Enviar Evaluación' : 'Ver informe'}</span>
@@ -139,14 +143,14 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
         </div>
       </div>
 
-      {/* Integrated Phases Section (Sin botón Ver Todas, todas las 9 fases visibles) */}
+      {/* Integrated Phases Section (todas las fases visibles) */}
       <div className="phases-integrated-container">
         <div className="phases-section-header">
-          <span className="phases-section-title">Fases de Auditoría ({SEGMENTS.length})</span>
+          <span className="phases-section-title">Fases de Auditoría ({activeSegs.length})</span>
         </div>
 
         <div className="phases-grid-all">
-          {SEGMENTS.map((seg, si) => {
+          {activeSegs.map((seg, si) => {
             const rowData = summary.rows[si];
             const isSegComplete = rowData ? rowData.segDone === seg.items.length : false;
             const isActive = currentSegment === si;

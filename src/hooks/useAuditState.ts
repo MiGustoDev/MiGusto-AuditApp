@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { AuditFields, AuditState, ItemStatus } from '../types/audit';
-import { SEGMENTS, STORAGE_KEY } from '../data/segments';
+import { AuditFields, AuditMode, AuditState, ItemStatus } from '../types/audit';
+import { getSegments, STORAGE_KEY } from '../data/segments';
 import { calculateAuditSummary, getTodayDate } from '../utils/formatters';
 
 const initialFields: AuditFields = {
@@ -12,9 +12,12 @@ const initialFields: AuditFields = {
   f_unid: ''
 };
 
-const getInitialState = (): AuditState => {
+const getStorageKey = (mode: AuditMode) => `${STORAGE_KEY}-${mode}`;
+
+const getInitialState = (mode: AuditMode): AuditState => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey(mode);
+    const raw = localStorage.getItem(key) || (mode === 'normal' ? localStorage.getItem(STORAGE_KEY) : null);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
@@ -33,19 +36,24 @@ const getInitialState = (): AuditState => {
   };
 };
 
-export function useAuditState() {
-  const [state, setState] = useState<AuditState>(getInitialState);
+export function useAuditState(auditMode: AuditMode = 'normal') {
+  const [state, setState] = useState<AuditState>(() => getInitialState(auditMode));
+
+  // Reload state when auditMode changes
+  useEffect(() => {
+    setState(getInitialState(auditMode));
+  }, [auditMode]);
 
   // Sync to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(getStorageKey(auditMode), JSON.stringify(state));
     } catch (e) {
       console.error('Error saving audit state to localStorage:', e);
     }
-  }, [state]);
+  }, [state, auditMode]);
 
-  const summary = useMemo(() => calculateAuditSummary(state.answers), [state.answers]);
+  const summary = useMemo(() => calculateAuditSummary(state.answers, auditMode), [state.answers, auditMode]);
 
   const setField = useCallback((field: keyof AuditFields, value: string) => {
     setState(prev => ({
@@ -59,7 +67,8 @@ export function useAuditState() {
 
   const setChoice = useCallback((segmentIndex: number, itemIndex: number, status: ItemStatus) => {
     const key = `${segmentIndex}-${itemIndex}`;
-    const ideal = SEGMENTS[segmentIndex].items[itemIndex].points;
+    const segs = getSegments(auditMode);
+    const ideal = segs[segmentIndex]?.items[itemIndex]?.points || 0;
 
     setState(prev => {
       const prevAnswer = prev.answers[key];
@@ -81,11 +90,12 @@ export function useAuditState() {
         answers: newAnswers
       };
     });
-  }, []);
+  }, [auditMode]);
 
   const setPartialScore = useCallback((segmentIndex: number, itemIndex: number, value: number) => {
     const key = `${segmentIndex}-${itemIndex}`;
-    const ideal = SEGMENTS[segmentIndex].items[itemIndex].points;
+    const segs = getSegments(auditMode);
+    const ideal = segs[segmentIndex]?.items[itemIndex]?.points || 0;
     const clampedValue = Math.min(ideal, Math.max(0, Math.round(value * 100) / 100));
 
     setState(prev => {
@@ -103,11 +113,12 @@ export function useAuditState() {
         }
       };
     });
-  }, []);
+  }, [auditMode]);
 
   const adjustPartialScore = useCallback((segmentIndex: number, itemIndex: number, step: number) => {
     const key = `${segmentIndex}-${itemIndex}`;
-    const ideal = SEGMENTS[segmentIndex].items[itemIndex].points;
+    const segs = getSegments(auditMode);
+    const ideal = segs[segmentIndex]?.items[itemIndex]?.points || 0;
 
     setState(prev => {
       const current = prev.answers[key];
@@ -127,7 +138,7 @@ export function useAuditState() {
         }
       };
     });
-  }, []);
+  }, [auditMode]);
 
   const setObservation = useCallback((segmentIndex: number, itemIndex: number, obs: string) => {
     const key = `${segmentIndex}-${itemIndex}`;
@@ -149,7 +160,8 @@ export function useAuditState() {
   const markSegmentPendingAsOk = useCallback((segmentIndex: number) => {
     setState(prev => {
       const newAnswers = { ...prev.answers };
-      SEGMENTS[segmentIndex].items.forEach((_, ii) => {
+      const segs = getSegments(auditMode);
+      (segs[segmentIndex]?.items || []).forEach((_, ii) => {
         const key = `${segmentIndex}-${ii}`;
         if (!newAnswers[key]) {
           newAnswers[key] = { s: 'ok', o: '' };
@@ -160,7 +172,7 @@ export function useAuditState() {
         answers: newAnswers
       };
     });
-  }, []);
+  }, [auditMode]);
 
   const addPhoto = useCallback((segmentIndex: number, itemIndex: number, photoIdOrUrl: string) => {
     const key = `${segmentIndex}-${itemIndex}`;

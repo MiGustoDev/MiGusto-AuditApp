@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SavedAuditRecord } from '../types/audit';
-import { f2, fmtDate, generateRecordSummaryText } from '../utils/formatters';
+import { f2, fmtDate, generateRecordSummaryText, generateRecordSummaryHtml } from '../utils/formatters';
 import { TOTAL_ITEMS, PASS_SCORE } from '../data/segments';
 import { downloadAuditPDF } from '../utils/pdfExport';
 import { AuditCharts } from './AuditCharts';
@@ -18,7 +18,8 @@ import {
   FileSpreadsheet,
   FileText,
   Mail,
-  ArrowLeft
+  ArrowLeft,
+  Check
 } from 'lucide-react';
 
 interface HistorySectionProps {
@@ -41,7 +42,45 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [copiedMailId, setCopiedMailId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyEmail = async (r: SavedAuditRecord, id: string) => {
+    const plainText = generateRecordSummaryText(r);
+    const htmlText = generateRecordSummaryHtml(r);
+
+    let copied = false;
+    if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+      try {
+        const item = new ClipboardItem({
+          'text/html': new Blob([htmlText], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        });
+        await navigator.clipboard.write([item]);
+        copied = true;
+      } catch (err) {
+        console.warn('ClipboardItem write falló, intentando fallback:', err);
+      }
+    }
+
+    if (!copied) {
+      try {
+        await navigator.clipboard.writeText(plainText);
+        copied = true;
+      } catch (e) {
+        onCopyText(plainText);
+        return;
+      }
+    }
+
+    setCopiedMailId(id);
+    setTimeout(() => {
+      setCopiedMailId(prev => (prev === id ? null : prev));
+    }, 2500);
+
+    // Disparar toast informativo
+    onCopyText('¡Informe con gráficos copiado para mail! Ya podés pegarlo en tu correo.');
+  };
 
   const q = searchTerm.trim().toLowerCase();
   const filteredList = records.filter(
@@ -180,9 +219,18 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                       <span className="hist-meta-item">
                         <User size={13} /> {r.auditor || 'Sin auditor'}
                       </span>
+                      {r.auditMode === 'experience' ? (
+                        <span className="hist-mode-pill experience" title="Auditoría Mi Gusto Experience">
+                          ✨ Experience
+                        </span>
+                      ) : (
+                        <span className="hist-mode-pill normal" title="Auditoría Estándar">
+                          Normal
+                        </span>
+                      )}
                       {!r.completa && (
                         <span className="hist-incomplete-badge">
-                          Incompleta ({r.evaluados || 0}/{TOTAL_ITEMS})
+                          Incompleta ({r.evaluados || 0}/{r.auditMode === 'experience' ? 70 : TOTAL_ITEMS})
                         </span>
                       )}
                     </div>
@@ -345,14 +393,12 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
 
                       <button
                         type="button"
-                        className="btn btn-sm btn-secondary-mail"
-                        onClick={() => {
-                          const emailText = generateRecordSummaryText(r);
-                          onCopyText(emailText);
-                        }}
+                        className={`btn btn-sm btn-secondary-mail ${copiedMailId === id ? 'is-copied' : ''}`}
+                        onClick={() => handleCopyEmail(r, id)}
+                        title="Copiar informe completo con diseño y gráficos para pegar en el mail"
                       >
-                        <Mail size={15} />
-                        <span>Copiar para mail</span>
+                        {copiedMailId === id ? <Check size={15} /> : <Mail size={15} />}
+                        <span>{copiedMailId === id ? '¡Copiado para mail!' : 'Copiar para mail'}</span>
                       </button>
 
                       {confirmDeleteId !== id ? (

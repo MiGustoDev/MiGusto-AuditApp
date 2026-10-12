@@ -10,6 +10,7 @@ interface SegmentCardProps {
   segmentData: SegmentCalculation;
   answers: Record<string, ItemAnswer>;
   photos: Record<string, string[]>;
+  totalSegments?: number;
   isOpen?: boolean;
   isFocused?: boolean;
   onToggle?: () => void;
@@ -32,6 +33,7 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
   segmentData,
   answers,
   photos,
+  totalSegments,
   isOpen = true,
   isFocused = false,
   onToggle,
@@ -51,7 +53,8 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
 }) => {
   const { seg, si, ideal, real, pct, segDone } = segmentData;
   const isStarted = segDone > 0;
-  const isLastSegment = si === SEGMENTS.length - 1;
+  const maxSegs = totalSegments || SEGMENTS.length;
+  const isLastSegment = si === maxSegs - 1;
   const stackRef = useRef<HTMLDivElement>(null);
 
   // Stagger animation for 2x2 item cards on segment change
@@ -82,7 +85,7 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
       >
         <div className="seg-header-info">
           <div className="seg-header-top-meta">
-            <span className="seg-index-tag">{si + 1} de {SEGMENTS.length}</span>
+            <span className="seg-index-tag">{si + 1} de {maxSegs}</span>
             <div className="seg-header-badges">
               {segDone < seg.items.length && (
                 <button

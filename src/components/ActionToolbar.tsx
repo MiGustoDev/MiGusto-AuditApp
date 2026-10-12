@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AuditState, AuditSummary } from '../types/audit';
-import { TOTAL_ITEMS } from '../data/segments';
+import { AuditMode, AuditState, AuditSummary } from '../types/audit';
+import { getTotalItems } from '../data/segments';
 import { buildRecordToSave } from '../utils/formatters';
 import { Save, RotateCcw, AlertTriangle } from 'lucide-react';
 
@@ -20,6 +20,7 @@ interface ActionToolbarProps {
   onJumpToSummary?: () => void;
   activeTab?: string;
   onGoToHistory?: () => void;
+  auditMode?: AuditMode;
 }
 
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -31,13 +32,15 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   onReset,
   setToast,
   flashMessage,
-  saveNote
+  saveNote,
+  auditMode = 'normal'
 }) => {
   const [saveArmed, setSaveArmed] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
 
-  const pendingCount = TOTAL_ITEMS - summary.done;
+  const totalItemsCount = getTotalItems(auditMode);
+  const pendingCount = totalItemsCount - summary.done;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -80,7 +83,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
     setIsSaving(true);
 
     try {
-      const record = buildRecordToSave(state, summary, myId);
+      const record = buildRecordToSave(state, summary, myId, auditMode);
       const res = await onSave(record);
       if (res.ok) {
         flash(`¡Auditoría de ${state.fields.f_tienda} guardada con éxito!`);

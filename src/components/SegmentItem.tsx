@@ -58,7 +58,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   const currentStatus = answer?.s;
   const showExtra = (answer && answer.s !== 'ok') || Boolean(answer && answer.o);
   const isPartial = currentStatus === 'partial';
-  const isCritical = itemDef.points >= 3.5;
+  const isCritical = Boolean(itemDef.isCritical) || itemDef.points >= 3.5;
 
   // Auto-resize textarea to fit content and line breaks
   useEffect(() => {
@@ -163,6 +163,11 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
         </div>
 
         <div className="item-points-col">
+          {itemDef.isCritical && (
+            <span className="critical-warning-pill" title="Ítem crítico: Si se marca No, desaprueba la auditoría automáticamente">
+              CRÍTICO
+            </span>
+          )}
           <span className={`pts-tag num ${isCritical ? 'high-impact-pts' : ''}`}>
             {isCritical && <Flame size={12} className="pts-icon" />}
             {fmtPts(itemDef.points)}
@@ -173,24 +178,15 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
       {/* Choice Buttons Bar */}
       <div className="item-actions-row">
         <div className="item-choices-group" role="group" aria-label={`Evaluación ítem ${itemNumber}`}>
+          {/* Opciones principales de alta prioridad: Cumple y No Cumple */}
           <button
             type="button"
             className={`btn-choice choice-ok ${currentStatus === 'ok' ? 'active' : ''}`}
             onClick={e => handleChoiceClick('ok', e.currentTarget)}
             aria-pressed={currentStatus === 'ok'}
           >
-            <Check size={16} className="choice-icon" />
+            <Check size={17} className="choice-icon" />
             <span>Cumple</span>
-          </button>
-
-          <button
-            type="button"
-            className={`btn-choice choice-partial ${currentStatus === 'partial' ? 'active' : ''}`}
-            onClick={e => handleChoiceClick('partial', e.currentTarget)}
-            aria-pressed={currentStatus === 'partial'}
-          >
-            <Slash size={14} className="choice-icon rotate-icon" />
-            <span>Parcial</span>
           </button>
 
           <button
@@ -199,8 +195,20 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
             onClick={e => handleChoiceClick('no', e.currentTarget)}
             aria-pressed={currentStatus === 'no'}
           >
-            <X size={16} className="choice-icon" />
+            <X size={17} className="choice-icon" />
             <span>No</span>
+          </button>
+
+          {/* Opción secundaria sutil: Parcial */}
+          <button
+            type="button"
+            className={`btn-choice choice-partial btn-choice-subtle ${currentStatus === 'partial' ? 'active' : ''}`}
+            onClick={e => handleChoiceClick('partial', e.currentTarget)}
+            aria-pressed={currentStatus === 'partial'}
+            title="Calificación parcial ponderada"
+          >
+            <Slash size={11} className="choice-icon rotate-icon" />
+            <span>parcial</span>
           </button>
         </div>
 
@@ -211,9 +219,9 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
             className={`btn-camera ${photos.length > 0 ? 'has-photos' : ''}`}
             aria-label={`Adjuntar foto al ítem ${itemNumber}`}
             onClick={() => fileInputRef.current?.click()}
-            title="Agregar foto de evidencia"
+            title="Adjuntar foto de evidencia"
           >
-            <Camera size={17} />
+            <Camera size={19} />
             {photos.length > 0 && <span className="camera-counter-badge">{photos.length}</span>}
           </button>
 

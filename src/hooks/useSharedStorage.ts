@@ -76,10 +76,21 @@ export function useSharedStorage() {
           fotos: Array.isArray(item.fotos) ? item.fotos : [],
           respuestas: item.respuestas || {},
           resumen: item.resumen || '',
+          auditMode: item.auditMode || (Array.isArray(item.segmentos) && item.segmentos.length > 9 ? 'experience' : 'normal'),
           savedBy: item.savedBy || '',
           savedAt: item.savedAt || new Date().toISOString()
         }));
-        setRecords(mapped);
+
+        // Combinar con los registros que pudieran estar en LocalStorage para no perderlos
+        const local = loadLocalRecords();
+        const existingIds = new Set(mapped.map(m => m._id));
+        const missingLocals = local.filter(l => l._id && !existingIds.has(l._id));
+
+        const merged = [...mapped, ...missingLocals].sort(
+          (a, b) => new Date(b.savedAt || 0).getTime() - new Date(a.savedAt || 0).getTime()
+        );
+
+        setRecords(merged);
       }
     } catch (err) {
       console.error('Failed to query Supabase:', err);
@@ -230,6 +241,7 @@ export function useSharedStorage() {
             fotos: record.fotos,
             respuestas: record.respuestas,
             resumen: record.resumen,
+            auditMode: record.auditMode || 'normal',
             savedBy: record.savedBy || myId || 'auditor',
             savedAt: record.savedAt || new Date().toISOString()
           };

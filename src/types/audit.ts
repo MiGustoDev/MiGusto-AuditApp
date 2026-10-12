@@ -1,3 +1,5 @@
+export type AuditMode = 'normal' | 'experience';
+
 export type ItemStatus = 'ok' | 'partial' | 'no';
 
 export interface ItemAnswer {
@@ -9,6 +11,7 @@ export interface ItemAnswer {
 export interface SegmentItemDef {
   points: number;
   text: string;
+  isCritical?: boolean;
 }
 
 export interface SegmentDef {
@@ -100,6 +103,7 @@ export interface SavedAuditRecord {
   fotos: PhotoEntry[];
   respuestas: Record<string, ItemAnswer>;
   resumen: string;
+  auditMode?: AuditMode;
   savedBy?: string;
   savedAt: string;
 }

@@ -14,10 +14,19 @@ import { HistorySection } from './components/HistorySection';
 import { PhotoLightbox } from './components/PhotoLightbox';
 import { AuditCharts } from './components/AuditCharts';
 import { UnfinishedAuditModal } from './components/UnfinishedAuditModal';
-import { SEGMENTS, TOTAL_ITEMS } from './data/segments';
+import { getSegments, getTotalItems } from './data/segments';
 import { buildRecordToSave } from './utils/formatters';
+import { AuditMode } from './types/audit';
 
 export function App() {
+  const [auditMode, setAuditMode] = useState<AuditMode>(() => {
+    try {
+      const savedMode = localStorage.getItem('auditoria-mi-gusto-mode');
+      if (savedMode === 'experience' || savedMode === 'normal') return savedMode;
+    } catch (e) {}
+    return 'normal';
+  });
+
   const {
     state,
     summary,
@@ -30,7 +39,7 @@ export function App() {
     addPhoto,
     removePhoto,
     resetAudit
-  } = useAuditState();
+  } = useAuditState(auditMode);
 
   const {
     records,
@@ -79,6 +88,20 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleModeChange = (mode: AuditMode) => {
+    if (mode === auditMode) return;
+    setAuditMode(mode);
+    setCurrentSegment(0);
+    try {
+      localStorage.setItem('auditoria-mi-gusto-mode', mode);
+    } catch (e) {}
+    flashMessage(
+      mode === 'experience'
+        ? 'Cambiado a auditoría Mi Gusto Experience (12 fases)'
+        : 'Cambiado a auditoría Normal (9 fases)'
+    );
+  };
+
   const handleSaveAuditRecord = async (recordToSave: ReturnType<typeof buildRecordToSave>) => {
     if (currentAuditId) {
       recordToSave._id = currentAuditId;
@@ -96,7 +119,7 @@ export function App() {
     
     // Build and save record automatically to history
     try {
-      const record = buildRecordToSave(state, summary, myId);
+      const record = buildRecordToSave(state, summary, myId, auditMode);
       if (currentAuditId) {
         record._id = currentAuditId;
       }
@@ -121,7 +144,7 @@ export function App() {
       gsap.fromTo(
         tabContentRef.current,
         { opacity: 0, y: 8 },
-        { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out' }
+        { opacity: 1, y: 0, duration: 0.32, ease: 'power2.out', clearProps: 'all' }
       );
     }
   }, [activeTab]);
@@ -175,6 +198,12 @@ export function App() {
   };
 
   const handleCopyText = async (txt: string) => {
+    // Si ya viene formateado como un mensaje de confirmación
+    if (txt.startsWith('¡') || txt.includes('copiado')) {
+      flashMessage(txt);
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(txt);
       flashMessage('Resumen copiado para WhatsApp');
@@ -183,9 +212,12 @@ export function App() {
     }
   };
 
+  const activeSegments = getSegments(auditMode);
+  const totalItemsCount = getTotalItems(auditMode);
+
   return (
     <div className="app-container">
-      {/* Top Navbar with Centered Links & Sticky Mobile Phases Bar */}
+      {/* Top Navbar with Centered Links, Mode Switcher & Sticky Mobile Phases Bar */}
       <Navbar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -197,6 +229,8 @@ export function App() {
         summary={summary}
         onEditSetup={handleEditSetup}
         onLogoClick={handleFullReset}
+        auditMode={auditMode}
+        onModeChange={handleModeChange}
       />
 
       <main className="wrap">
@@ -229,16 +263,18 @@ export function App() {
                 <ScoreBoard
                   summary={summary}
                   currentSegment={currentSegment}
+                  segments={activeSegments}
                   onSelectSegment={handleSelectSegment}
                   onJumpToSummary={handleJumpToSummaryWithLoading}
                 />
 
                 <div id="segments" className="segments-viewport">
                   <SegmentCard
-                    key={currentSegment}
+                    key={`${auditMode}-${currentSegment}`}
                     segmentData={summary.rows[currentSegment]}
                     answers={state.answers}
                     photos={state.photos}
+                    totalSegments={activeSegments.length}
                     isOpen={true}
                     isFocused={true}
                     onChoice={setChoice}
@@ -252,7 +288,7 @@ export function App() {
                     onFlashMessage={flashMessage}
                     uploadAsset={uploadAsset}
                     onNextSegment={() => {
-                      if (currentSegment < SEGMENTS.length - 1) {
+                      if (currentSegment < activeSegments.length - 1) {
                         handleSelectSegment(currentSegment + 1);
                       }
                     }}
@@ -283,8 +319,6 @@ export function App() {
               auditorName={state.fields.f_auditor}
             />
 
-
-
             <DeviationsList
               deviations={summary.devs}
               photos={state.photos}
@@ -292,7 +326,7 @@ export function App() {
               onSelectDeviation={itemNum => {
                 const [sStr] = itemNum.split('.');
                 const si = parseInt(sStr, 10) - 1;
-                if (!isNaN(si) && si >= 0 && si < SEGMENTS.length) {
+                if (!isNaN(si) && si >= 0 && si < activeSegments.length) {
                   setCurrentSegment(si);
                   setActiveTab('audit');
                 }
@@ -311,6 +345,7 @@ export function App() {
               toast={toast}
               setToast={setToast}
               flashMessage={flashMessage}
+              auditMode={auditMode}
               onGoToHistory={() => {
                 setActiveTab('history');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -379,7 +414,7 @@ export function App() {
           storeName={state.fields.f_tienda}
           auditorName={state.fields.f_auditor}
           doneCount={summary.done}
-          totalCount={TOTAL_ITEMS}
+          totalCount={totalItemsCount}
           onContinue={() => {
             setShowUnfinishedModal(false);
             if (state.fields.f_tienda && state.fields.f_auditor) {

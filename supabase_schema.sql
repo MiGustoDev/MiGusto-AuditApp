@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.audits (
     estado TEXT,
     completa BOOLEAN DEFAULT false,
     evaluados INTEGER DEFAULT 0,
+    "auditMode" TEXT DEFAULT 'normal',
     segmentos JSONB DEFAULT '[]'::jsonb,
     desvios JSONB DEFAULT '[]'::jsonb,
     fotos JSONB DEFAULT '[]'::jsonb,
@@ -25,6 +26,9 @@ CREATE TABLE IF NOT EXISTS public.audits (
     "savedBy" TEXT,
     "savedAt" TIMESTAMPTZ DEFAULT now()
 );
+
+-- Si la tabla ya existía, agregar la columna auditMode si falta:
+ALTER TABLE public.audits ADD COLUMN IF NOT EXISTS "auditMode" TEXT DEFAULT 'normal';
 
 -- 2. Conceder permisos a los roles anónimos y autenticados
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
