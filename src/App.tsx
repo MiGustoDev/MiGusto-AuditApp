@@ -4,6 +4,8 @@ import { useAuditState } from './hooks/useAuditState';
 import { useSharedStorage } from './hooks/useSharedStorage';
 import { useWakeLock } from './hooks/useWakeLock';
 import { Navbar, ActiveTab } from './components/Navbar';
+import { LoginScreen } from './components/LoginScreen';
+import { getStoredSession, clearSession, UserProfile, canUserDeleteAudits } from './lib/auth';
 import { ScoreBoard } from './components/ScoreBoard';
 import { GeneralFields } from './components/GeneralFields';
 import { SegmentCard } from './components/SegmentCard';
@@ -27,6 +29,8 @@ export interface ToastState {
 }
 
 export function App() {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredSession());
+
   const [auditMode, setAuditMode] = useState<AuditMode>(() => {
     try {
       const savedMode = localStorage.getItem('auditoria-mi-gusto-mode');
@@ -49,12 +53,18 @@ export function App() {
     resetAudit
   } = useAuditState(auditMode);
 
+  // Auto-fill auditor field with logged-in user name if not filled
+  useEffect(() => {
+    if (currentUser && !state.fields.f_auditor) {
+      setField('f_auditor', currentUser.name);
+    }
+  }, [currentUser, state.fields.f_auditor, setField]);
+
   const {
     records,
     loading: historyLoading,
     isClaudeEnv,
     canWrite,
-    isAdmin,
     myId,
     hasDownloadsApi,
     saveAudit,
@@ -81,6 +91,18 @@ export function App() {
 
   const isAuditStarted = summary.done > 0;
   const [currentAuditId, setCurrentAuditId] = useState<string | null>(null);
+
+  const handleLogout = () => {
+    clearSession();
+    setCurrentUser(null);
+  };
+
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    if (!state.fields.f_auditor) {
+      setField('f_auditor', user.name);
+    }
+  };
 
   const handleStartAudit = () => {
     if (!state.fields.f_tienda.trim() || !state.fields.f_auditor.trim()) {
@@ -232,6 +254,10 @@ export function App() {
   const activeSegments = getSegments(auditMode);
   const totalItemsCount = getTotalItems(auditMode);
 
+  if (!currentUser) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="app-container">
       {/* Top Navbar with Centered Links, Mode Switcher & Sticky Mobile Phases Bar */}
@@ -249,6 +275,8 @@ export function App() {
         auditMode={auditMode}
         onModeChange={handleModeChange}
         auditStep={auditStep}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       <main className="wrap">
@@ -406,7 +434,7 @@ export function App() {
             <HistorySection
               records={records}
               loading={historyLoading}
-              isAdmin={isAdmin}
+              isAdmin={canUserDeleteAudits(currentUser)}
               onDeleteRecord={deleteAudit}
               onCopyText={handleCopyText}
               onViewPhoto={setLightboxSrc}

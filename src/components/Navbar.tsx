@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles } from 'lucide-react';
+import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles, LogOut, User as UserIcon } from 'lucide-react';
 import { getSegments } from '../data/segments';
 import { AuditSummary } from '../types/audit';
+import { UserProfile } from '../lib/auth';
 
 export type ActiveTab = 'audit' | 'summary' | 'history';
 
@@ -19,6 +20,8 @@ interface NavbarProps {
   auditMode?: 'normal' | 'experience';
   onModeChange?: (mode: 'normal' | 'experience') => void;
   auditStep?: 'setup' | 'evaluate';
+  currentUser?: UserProfile | null;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -34,7 +37,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogoClick,
   auditMode = 'normal',
   onModeChange,
-  auditStep = 'evaluate'
+  auditStep = 'evaluate',
+  currentUser,
+  onLogout
 }) => {
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
@@ -154,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* Right Section: Mobile Hamburger Menu & Desktop Historial Button */}
+          {/* Right Section: Mobile Hamburger Menu & Desktop Switch */}
           <div className="header-right-nav-section">
             <button
               type="button"
@@ -167,31 +172,55 @@ export const Navbar: React.FC<NavbarProps> = ({
               {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
             </button>
 
-            {/* Desktop Navigation: Historial / Auditoría Button */}
+            {/* Desktop Navigation: Switch Segmentado Auditoría / Historial */}
             <div className="desktop-header-actions">
-              {activeTab === 'history' ? (
+              <div className="desktop-view-switch" role="tablist" aria-label="Vista principal">
                 <button
                   type="button"
-                  className="desktop-nav-btn active"
+                  role="tab"
+                  aria-selected={activeTab !== 'history'}
+                  className={`switch-option-btn ${activeTab !== 'history' ? 'active' : ''}`}
                   onClick={() => onTabChange('audit')}
-                  title="Volver a la auditoría"
+                  title="Auditoría en curso"
                 >
-                  <ClipboardCheck size={16} />
+                  <ClipboardCheck size={15} />
                   <span>Auditoría</span>
                 </button>
-              ) : (
                 <button
                   type="button"
-                  className="desktop-nav-btn"
+                  role="tab"
+                  aria-selected={activeTab === 'history'}
+                  className={`switch-option-btn ${activeTab === 'history' ? 'active' : ''}`}
                   onClick={() => onTabChange('history')}
-                  title="Ver historial de auditorías"
+                  title="Historial de auditorías"
                 >
-                  <History size={16} />
+                  <History size={15} />
                   <span>Historial</span>
                   {historyCount > 0 && (
-                    <span className="tab-badge neutral">{historyCount}</span>
+                    <span className="switch-badge">{historyCount}</span>
                   )}
                 </button>
+              </div>
+
+              {/* User profile & Logout */}
+              {currentUser && (
+                <div className="header-user-badge" title={`${currentUser.name} (${currentUser.roleLabel})`}>
+                  <div className="header-user-info">
+                    <span className="header-user-name">{currentUser.name}</span>
+                    <span className="header-user-role">{currentUser.roleLabel}</span>
+                  </div>
+                  {onLogout && (
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      className="header-logout-btn"
+                      title="Cerrar sesión"
+                      aria-label="Cerrar sesión"
+                    >
+                      <LogOut size={15} />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -264,6 +293,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
+            {currentUser && (
+              <div className="side-menu-user-card">
+                <div className="side-menu-user-avatar">
+                  <UserIcon size={16} />
+                </div>
+                <div className="side-menu-user-details">
+                  <div className="side-menu-user-name">{currentUser.name}</div>
+                  <div className="side-menu-user-role">{currentUser.roleLabel} • {currentUser.email}</div>
+                </div>
+              </div>
+            )}
+
             {storeName && (
               <div className="side-menu-store-info">
                 <Store size={14} />
@@ -299,6 +340,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
             </div>
+
+            {currentUser && onLogout && (
+              <div className="side-menu-footer-actions">
+                <button
+                  type="button"
+                  className="side-menu-logout-btn"
+                  onClick={() => {
+                    handleCloseMenu();
+                    onLogout();
+                  }}
+                >
+                  <LogOut size={16} />
+                  <span>Cerrar Sesión</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

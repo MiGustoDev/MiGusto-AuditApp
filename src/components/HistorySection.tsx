@@ -54,6 +54,7 @@ interface HistorySectionProps {
 export const HistorySection: React.FC<HistorySectionProps> = ({
   records,
   loading,
+  isAdmin,
   onDeleteRecord,
   onCopyText,
   onViewPhoto
@@ -538,14 +539,16 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                         <span>{copiedMailId === id ? '¡Copiado para mail!' : 'Copiar para mail'}</span>
                       </button>
 
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger-subtle"
-                        onClick={() => setConfirmDeleteId(id)}
-                      >
-                        <Trash2 size={14} />
-                        <span>Eliminar registro</span>
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger-subtle"
+                          onClick={() => setConfirmDeleteId(id)}
+                        >
+                          <Trash2 size={14} />
+                          <span>Eliminar registro</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -555,8 +558,8 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
         )}
       </div>
 
-      {/* Modal de confirmación para eliminar registro */}
-      {confirmDeleteId && (
+      {/* Modal de confirmación para eliminar registro (solo si es Admin) */}
+      {isAdmin && confirmDeleteId && (
         <div
           className="delete-modal-backdrop"
           role="dialog"
