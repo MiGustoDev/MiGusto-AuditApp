@@ -151,22 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 </div>
               </div>
-<<<<<<< HEAD
             )
-=======
-
-              <button
-                type="button"
-                className="btn-side-menu-trigger"
-                onClick={handleOpenMenu}
-                aria-label="Abrir menú de opciones"
-                title="Menú de navegación"
-              >
-                <Menu size={20} />
-                {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
-              </button>
-            </div>
->>>>>>> a408be21edfd5c249fa6a48e0472c1482d07284a
           ) : (
             <div className="header-center-mode-wrap">
               <div className="header-single-title-pill">
@@ -184,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               className="btn-side-menu-trigger"
-              onClick={() => setIsSideMenuOpen(true)}
+              onClick={handleOpenMenu}
               aria-label="Abrir menú de opciones"
               title="Menú de navegación"
             >

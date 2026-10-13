@@ -10,7 +10,8 @@ import {
   Plus, 
   Minus, 
   Trash2, 
-  Flame
+  Flame,
+  Slash
 } from 'lucide-react';
 
 interface SegmentItemProps {
