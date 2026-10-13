@@ -2528,8 +2528,9 @@ html, body {
 .hist-actions-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .confirm-delete-row {
@@ -4442,25 +4443,32 @@ html, body {
   letter-spacing: 0.01em;
 }
 
-/* History Card Actions Mobile Optimization */
+/* History Card Actions Desktop & Mobile Optimization */
 .hist-actions-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 12px;
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
 
 .hist-actions-bar .btn {
-  flex: 1 1 auto;
-  min-width: 140px;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: max-content;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   font-weight: 600;
+  font-size: 0.88rem;
   border-radius: var(--radius-md);
-  padding: 8px 14px;
+  padding: 8px 18px;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
 }
 
 .btn-primary-pdf {
