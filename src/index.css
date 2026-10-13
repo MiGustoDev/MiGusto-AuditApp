@@ -2150,13 +2150,20 @@ html, body {
 }
 
 .history-search-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
+  position: relative;
+  width: 100%;
 }
 
 .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
   width: 100%;
 }
 
@@ -2164,6 +2171,7 @@ html, body {
   position: absolute;
   left: 12px;
   color: var(--fg-subtle);
+  pointer-events: none;
 }
 
 .search-input-wrapper input {
@@ -2176,11 +2184,13 @@ html, body {
   font-size: 0.9rem;
   font-family: inherit;
   outline: none;
+  transition: all var(--transition-fast);
 }
 
 .search-input-wrapper input:focus {
   background: var(--surface);
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
   outline: none;
 }
 
@@ -2189,6 +2199,222 @@ html, body {
   right: 12px;
   font-size: 1.2rem;
   color: var(--fg-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-search-btn:hover {
+  color: var(--fg);
+}
+
+/* History Filter Dropdown */
+.hist-filter-dropdown-wrapper {
+  position: relative;
+  flex: 0 0 185px;
+  min-width: 160px;
+}
+
+.hist-filter-trigger {
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.hist-filter-trigger:hover {
+  background: var(--surface-3);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.hist-filter-trigger.is-open {
+  border-color: var(--accent);
+  background: var(--surface-3);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.hist-filter-trigger.has-filter {
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--fg-bright);
+}
+
+.hist-filter-trigger-content {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hist-filter-trigger-icon {
+  color: var(--fg-subtle);
+  flex-shrink: 0;
+}
+
+.hist-filter-trigger.has-filter .hist-filter-trigger-icon {
+  color: var(--accent-light);
+}
+
+.hist-filter-trigger-label {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hist-filter-trigger-pill {
+  padding: 2px 7px !important;
+  font-size: 0.74rem !important;
+}
+
+.hist-filter-chevron {
+  color: var(--fg-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hist-filter-chevron.rotate {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu Popup */
+.hist-filter-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 205px;
+  background: #0f172a;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.6), 0 8px 16px -2px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  animation: histFilterMenuIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes histFilterMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hist-filter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.hist-filter-item:hover {
+  background: var(--surface-2);
+  color: var(--fg-bright);
+}
+
+.hist-filter-item.is-selected {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--accent-light);
+  font-weight: 600;
+}
+
+.hist-filter-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Styled option pills/badges */
+.hist-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  letter-spacing: 0.01em;
+}
+
+.hist-filter-tag.tag-todos {
+  background: transparent;
+  color: var(--fg);
+}
+
+.hist-filter-tag.tag-normal {
+  background: var(--surface-3);
+  color: var(--fg-muted);
+  border: 1px solid var(--line);
+}
+
+.hist-filter-tag.tag-experience {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.hist-filter-tag.tag-incomplete {
+  background: var(--warn-soft);
+  color: var(--warn-fg);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.hist-filter-tag.tag-approved {
+  background: var(--ok-soft);
+  color: var(--ok-fg);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.hist-filter-tag.tag-rejected {
+  background: var(--bad-soft);
+  color: var(--bad-fg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.hist-filter-item .selected-check {
+  color: var(--accent-light);
+  flex-shrink: 0;
 }
 
 .history-list-container {
@@ -4592,6 +4818,36 @@ html, body {
     font-size: 0.7rem !important;
     padding: 3px 8px !important;
     border-radius: 6px !important;
+  }
+  .history-search-container {
+    gap: 8px !important;
+  }
+  .search-input-wrapper input {
+    padding: 8px 30px 8px 32px !important;
+    font-size: 0.82rem !important;
+    height: 38px !important;
+  }
+  .hist-filter-dropdown-wrapper {
+    flex: 0 0 148px !important;
+    min-width: 130px !important;
+  }
+  .hist-filter-trigger {
+    height: 38px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    gap: 5px !important;
+  }
+  .hist-filter-trigger-content {
+    gap: 5px !important;
+  }
+  .hist-filter-trigger-pill {
+    padding: 2px 6px !important;
+    font-size: 0.72rem !important;
+    gap: 4px !important;
+  }
+  .hist-filter-menu {
+    min-width: 185px !important;
+    right: 0 !important;
   }
   .history-wrapper {
     padding: 10px 4px !important;
