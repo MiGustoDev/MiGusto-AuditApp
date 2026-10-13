@@ -207,6 +207,7 @@ export function App() {
   };
 
   const handleSelectSegment = (si: number) => {
+    setAuditStep('evaluate');
     setCurrentSegment(si);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -245,6 +246,7 @@ export function App() {
         onLogoClick={handleFullReset}
         auditMode={auditMode}
         onModeChange={handleModeChange}
+        auditStep={auditStep}
       />
 
       <main className="wrap">

@@ -2894,19 +2894,31 @@ html, body {
   color: #ffffff;
 }
 
-.header-phase-chip.level-zero-chip {
+.header-phase-chip.level-zero-chip:not(.active) {
   background: rgba(245, 158, 11, 0.12);
   color: #fbbf24;
   border-color: rgba(245, 158, 11, 0.35);
 }
 
-.header-phase-chip.level-zero-chip .header-phase-num {
+.header-phase-chip.level-zero-chip:not(.active) .header-phase-num {
   background: rgba(245, 158, 11, 0.25);
   color: #ffffff;
 }
 
-.header-phase-chip.level-zero-chip:hover {
+.header-phase-chip.level-zero-chip:not(.active):hover {
   background: rgba(245, 158, 11, 0.22);
+}
+
+.header-phase-chip.level-zero-chip.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.header-phase-chip.level-zero-chip.active .header-phase-num {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
 }
 
 /* ==========================================================================

@@ -18,6 +18,7 @@ interface NavbarProps {
   onLogoClick?: () => void;
   auditMode?: 'normal' | 'experience';
   onModeChange?: (mode: 'normal' | 'experience') => void;
+  auditStep?: 'setup' | 'evaluate';
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,7 +33,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onEditSetup,
   onLogoClick,
   auditMode = 'normal',
-  onModeChange
+  onModeChange,
+  auditStep = 'evaluate'
 }) => {
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
@@ -90,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         });
       }
     }
-  }, [currentSegment, activeTab]);
+  }, [currentSegment, activeTab, auditStep]);
 
   const handleNavClick = (tab: ActiveTab) => {
     onTabChange(tab);
@@ -187,7 +189,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               {onEditSetup && (
                 <button
                   type="button"
-                  className="header-phase-chip level-zero-chip"
+                  ref={auditStep === 'setup' ? activePhaseRef : null}
+                  className={`header-phase-chip level-zero-chip ${auditStep === 'setup' ? 'active' : ''}`}
                   onClick={onEditSetup}
                   title="Volver a los datos del Nivel 0 (Sucursal)"
                 >
@@ -199,7 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               {getSegments(auditMode).map((seg, si) => {
                 const rowData = summary.rows[si];
                 const isSegComplete = rowData ? rowData.segDone === seg.items.length : false;
-                const isActive = currentSegment === si;
+                const isActive = auditStep === 'evaluate' && currentSegment === si;
                 const doneItems = rowData ? rowData.segDone : 0;
                 const totalItems = seg.items.length;
 
