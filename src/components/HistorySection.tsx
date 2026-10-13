@@ -121,6 +121,20 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
     setConfirmDeleteId(null);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && confirmDeleteId && !deletingId) {
+        setConfirmDeleteId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [confirmDeleteId, deletingId]);
+
+  const recordToDelete = confirmDeleteId
+    ? records.find(r => (r._id || `${r.fecha}-${r.tienda}`) === confirmDeleteId)
+    : null;
+
   return (
     <section className="history-wrapper card" aria-label="Historial de auditorías">
       <div className="section-header-row">
@@ -377,35 +391,14 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                         <span>{copiedMailId === id ? '¡Copiado para mail!' : 'Copiar para mail'}</span>
                       </button>
 
-                      {confirmDeleteId !== id ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-danger-subtle"
-                          onClick={() => setConfirmDeleteId(id)}
-                        >
-                          <Trash2 size={14} />
-                          <span>Eliminar registro</span>
-                        </button>
-                      ) : (
-                        <div className="confirm-delete-row">
-                          <span className="confirm-txt">¿Eliminar definitivamente?</span>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger"
-                            disabled={deletingId === id}
-                            onClick={() => handleDelete(id)}
-                          >
-                            {deletingId === id ? 'Eliminando...' : 'Sí, eliminar'}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline"
-                            onClick={() => setConfirmDeleteId(null)}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger-subtle"
+                        onClick={() => setConfirmDeleteId(id)}
+                      >
+                        <Trash2 size={14} />
+                        <span>Eliminar registro</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -414,6 +407,59 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
           })
         )}
       </div>
+
+      {/* Modal de confirmación para eliminar registro */}
+      {confirmDeleteId && (
+        <div
+          className="delete-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deletingId) {
+              setConfirmDeleteId(null);
+            }
+          }}
+        >
+          <div className="delete-modal-card">
+            <div className="delete-modal-icon-wrap">
+              <Trash2 size={30} className="delete-modal-icon" />
+            </div>
+
+            <h3 className="delete-modal-title">¿Seguro que desea eliminar de forma permanente este registro?</h3>
+
+            <p className="delete-modal-subtitle">
+              {recordToDelete ? (
+                <>
+                  Auditoría de <strong>{recordToDelete.tienda || 'Sucursal'}</strong>{' '}
+                  {recordToDelete.fecha ? `(${fmtDate(recordToDelete.fecha)})` : ''}.<br />
+                </>
+              ) : null}
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div className="delete-modal-actions">
+              <button
+                type="button"
+                className="btn-delete-modal-confirm"
+                disabled={Boolean(deletingId)}
+                onClick={() => handleDelete(confirmDeleteId)}
+              >
+                <Trash2 size={16} />
+                <span>{deletingId ? 'Eliminando...' : 'Sí, eliminar'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-delete-modal-cancel"
+                disabled={Boolean(deletingId)}
+                onClick={() => setConfirmDeleteId(null)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
