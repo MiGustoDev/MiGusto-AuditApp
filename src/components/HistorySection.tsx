@@ -207,18 +207,12 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                   tabIndex={0}
                 >
                   <div className="hist-main-info">
-                    <div className="hist-store-name">
-                      <Store size={16} className="hist-icon" />
-                      <span>{r.tienda || 'Sucursal no identificada'}</span>
-                    </div>
+                    <div className="hist-store-row">
+                      <div className="hist-store-name">
+                        <Store size={16} className="hist-icon" />
+                        <span className="hist-store-title">{r.tienda || 'Sucursal no identificada'}</span>
+                      </div>
 
-                    <div className="hist-meta-chips num">
-                      <span className="hist-meta-item">
-                        <Calendar size={13} /> {fmtDate(r.fecha)}
-                      </span>
-                      <span className="hist-meta-item">
-                        <User size={13} /> {r.auditor || 'Sin auditor'}
-                      </span>
                       {r.auditMode === 'experience' ? (
                         <span className="hist-mode-pill experience" title="Auditoría Mi Gusto Experience">
                           ✨ Experience
@@ -228,6 +222,15 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                           Normal
                         </span>
                       )}
+                    </div>
+
+                    <div className="hist-meta-chips num">
+                      <span className="hist-meta-item">
+                        <Calendar size={13} /> <span>{fmtDate(r.fecha)}</span>
+                      </span>
+                      <span className="hist-meta-item hist-auditor-item">
+                        <User size={13} /> <span className="hist-auditor-name">{r.auditor || 'Sin auditor'}</span>
+                      </span>
                       {!r.completa && (
                         <span className="hist-incomplete-badge">
                           Incompleta ({r.evaluados || 0}/{r.auditMode === 'experience' ? 70 : TOTAL_ITEMS})
