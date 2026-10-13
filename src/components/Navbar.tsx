@@ -129,39 +129,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Center: When in Audit show Mode Switcher, when in History show "Historial" title */}
-          {activeTab === 'audit' ? (
-            onModeChange && (
-              <div className="header-center-mode-wrap">
-                <div className="audit-mode-switcher-pill" role="group" aria-label="Tipo de auditoría">
-                  <button
-                    type="button"
-                    className={`mode-btn ${auditMode === 'normal' ? 'active' : ''}`}
-                    onClick={() => onModeChange('normal')}
-                    title="Auditoría Normal Estándar (9 fases)"
-                  >
-                    <span>Normal</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`mode-btn experience ${auditMode === 'experience' ? 'active' : ''}`}
-                    onClick={() => onModeChange('experience')}
-                    title="Auditoría Mi Gusto Experience (12 fases)"
-                  >
-                    <Sparkles size={13} className="mode-sparkle-icon" />
-                    <span>Experience</span>
-                  </button>
-                </div>
-              </div>
-            )
-          ) : (
+          {/* Center: Always show Mode Switcher (Normal / Experience) */}
+          {onModeChange && (
             <div className="header-center-mode-wrap">
-              <div className="header-single-title-pill">
-                <History size={16} />
-                <span>Historial</span>
-                {historyCount > 0 && (
-                  <span className="tab-badge neutral">{historyCount}</span>
-                )}
+              <div className="audit-mode-switcher-pill" role="group" aria-label="Tipo de auditoría">
+                <button
+                  type="button"
+                  className={`mode-btn ${auditMode === 'normal' ? 'active' : ''}`}
+                  onClick={() => onModeChange('normal')}
+                  title="Auditoría Normal Estándar (9 fases)"
+                >
+                  <span>Normal</span>
+                </button>
+                <button
+                  type="button"
+                  className={`mode-btn experience ${auditMode === 'experience' ? 'active' : ''}`}
+                  onClick={() => onModeChange('experience')}
+                  title="Auditoría Mi Gusto Experience (12 fases)"
+                >
+                  <Sparkles size={13} className="mode-sparkle-icon" />
+                  <span>Experience</span>
+                </button>
               </div>
             </div>
           )}

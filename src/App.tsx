@@ -87,6 +87,7 @@ export function App() {
       flashMessage('Por favor completá los campos obligatorios: Tienda y Auditor/a', true);
       return;
     }
+    setCurrentSegment(0);
     setAuditStep('evaluate');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
