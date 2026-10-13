@@ -164,6 +164,7 @@ input[type=number]::-webkit-outer-spin-button,
 input[type=number],
 .no-spinners {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Date input in dark mode */
@@ -1168,7 +1169,6 @@ input[type="date"],
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  flex-content: 1;
   flex: 1;
 }
 
@@ -2681,10 +2681,14 @@ html, body {
   max-width: 1440px;
   margin: 0 auto;
   padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .phases-rail-container::-webkit-scrollbar {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 .header-phase-chip {
@@ -2704,6 +2708,17 @@ html, body {
   transition: all var(--transition-fast);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+}
+
+.header-phase-chip:focus,
+.header-phase-chip:focus-visible,
+.header-phase-chip:active,
+.header-phase-chip.level-zero-chip:focus,
+.header-phase-chip.level-zero-chip:focus-visible,
+.header-phase-chip.level-zero-chip:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .header-phase-chip:hover {
@@ -2715,7 +2730,8 @@ html, body {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .header-phase-chip.is-complete {
@@ -2993,9 +3009,27 @@ html, body {
   to { opacity: 1; }
 }
 
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 @keyframes slideInRight {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.side-menu-backdrop.is-closing {
+  animation: fadeOut 0.22s ease-in forwards;
+}
+
+.side-menu-drawer.is-closing {
+  animation: slideOutRight 0.22s cubic-bezier(0.32, 0, 0.67, 0) forwards;
 }
 
 .side-menu-header {
@@ -3140,10 +3174,15 @@ html, body {
     align-items: stretch;
   }
   .score-actions {
-    justify-content: stretch;
+    justify-content: center;
+    margin-top: 12px;
   }
   .btn-report-action {
-    width: 100%;
+    width: auto;
+    max-width: max-content;
+    padding: 9px 20px;
+    font-size: 0.88rem;
+    white-space: nowrap;
   }
   .header-right-nav {
     padding: 2px;
@@ -3152,11 +3191,27 @@ html, body {
     padding: 4px 8px;
     font-size: 0.75rem;
   }
-  .btn-choice span {
-    font-size: 0.78rem;
-  }
   .segment-items-stack {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .item-card {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+  .item-description-text {
+    font-size: 0.88rem;
+    line-height: 1.42;
+  }
+  .btn-choice {
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.84rem;
+  }
+  .btn-camera {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
   }
 }
 
@@ -3247,6 +3302,20 @@ html, body {
   gap: 6px;
 }
 
+.setup-title-heading-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setup-title-heading-row .setup-step-pill {
+  order: 1;
+}
+
+.setup-title-heading-row .setup-main-title {
+  order: 2;
+}
+
 .setup-step-pill {
   align-self: flex-start;
   font-size: 0.72rem;
@@ -3309,6 +3378,107 @@ html, body {
 
 .btn-start-audit-primary:active {
   transform: scale(0.97);
+}
+
+@media (max-width: 680px) {
+  /* Quitar apariencia de navbar a las cápsulas de segmentos */
+  .app-header {
+    background: transparent !important;
+    border-bottom: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .header-inner {
+    background: rgba(19, 27, 46, 0.95);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .header-phases-subbar {
+    background: transparent !important;
+    border: none !important;
+    border-top: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    padding: 8px 0 10px 0 !important;
+    width: 100% !important;
+    max-height: 80px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, padding 0.28s ease, transform 0.25s ease;
+    transform: translateY(0);
+  }
+
+  .header-phases-subbar.is-scrolled-hidden {
+    max-height: 0 !important;
+    opacity: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(-8px);
+  }
+
+  /* Cápsulas de borde a borde sin limitantes y sin barra de scroll */
+  .phases-rail-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 0 !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .phases-rail-container::-webkit-scrollbar,
+  .header-phases-subbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  .setup-title-heading-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .setup-title-heading-row .setup-main-title {
+    order: 1;
+    font-size: 1.35rem;
+    margin: 0;
+  }
+
+  .setup-title-heading-row .setup-step-pill {
+    order: 2;
+    align-self: center;
+    margin: 0;
+    font-size: 0.72rem;
+    padding: 3px 9px;
+  }
+
+  .setup-actions-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+
+  .btn-start-audit-primary {
+    width: auto;
+    max-width: max-content;
+    padding: 10px 20px;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
 }
 
 .current-store-pill.clickable {
@@ -4090,10 +4260,24 @@ html, body {
 /* ==========================================================================
    UNFINISHED AUDIT MODAL STYLES
    ========================================================================== */
+.unfinished-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(11, 15, 25, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease-out;
+}
+
 .unfinished-modal-card {
   background: var(--surface);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   border-radius: var(--radius-xl);
   padding: 28px 24px;
   max-width: 440px;
@@ -4153,13 +4337,18 @@ html, body {
 
 .unfinished-actions {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   gap: 12px;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
 }
 
 .btn-modal-continue {
-  flex: 1.2;
-  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -4167,23 +4356,25 @@ html, body {
   color: #ffffff;
   border: none;
   border-radius: var(--radius-lg);
-  padding: 12px 18px;
+  padding: 10px 20px;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
 }
 
 .btn-modal-continue:hover {
-  background: #be123c;
+  background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.45);
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45);
 }
 
 .btn-modal-discard {
-  flex: 1;
-  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -4191,10 +4382,11 @@ html, body {
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #fca5a5;
   border-radius: var(--radius-lg);
-  padding: 12px 16px;
+  padding: 10px 18px;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
@@ -4204,9 +4396,4 @@ html, body {
   color: #ffffff;
 }
 
-@media (max-width: 480px) {
-  .unfinished-actions {
-    flex-direction: column;
-  }
-}
 

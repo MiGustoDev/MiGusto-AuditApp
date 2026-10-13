@@ -33,8 +33,10 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({
     <section ref={containerRef} className="general-card-setup card" aria-label="Nivel 0: Datos de la Sucursal">
       <div className="setup-header-row">
         <div className="setup-title-group">
-          <span className="setup-step-pill">Nivel 0</span>
-          <h2 className="setup-main-title">Sucursal</h2>
+          <div className="setup-title-heading-row">
+            <h2 className="setup-main-title">Sucursal</h2>
+            <span className="setup-step-pill">Nivel 0</span>
+          </div>
           <p className="setup-sub-text">Cargá los datos de la sucursal y del auditor para iniciar la auditoría.</p>
         </div>
       </div>

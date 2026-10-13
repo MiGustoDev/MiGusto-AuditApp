@@ -37,6 +37,41 @@ export const Navbar: React.FC<NavbarProps> = ({
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const handleOpenMenu = () => {
+    setIsClosing(false);
+    setIsSideMenuOpen(true);
+  };
+
+  const handleCloseMenu = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsSideMenuOpen(false);
+      setIsClosing(false);
+    }, 220);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSideMenuOpen && !isClosing) {
+        handleCloseMenu();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSideMenuOpen, isClosing]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 25);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Auto-scroll active phase button into view smoothly on horizontal rail
   useEffect(() => {
@@ -59,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleNavClick = (tab: ActiveTab) => {
     onTabChange(tab);
-    setIsSideMenuOpen(false);
+    handleCloseMenu();
   };
 
   return (
@@ -116,7 +151,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 </div>
               </div>
+<<<<<<< HEAD
             )
+=======
+
+              <button
+                type="button"
+                className="btn-side-menu-trigger"
+                onClick={handleOpenMenu}
+                aria-label="Abrir menú de opciones"
+                title="Menú de navegación"
+              >
+                <Menu size={20} />
+                {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
+              </button>
+            </div>
+>>>>>>> a408be21edfd5c249fa6a48e0472c1482d07284a
           ) : (
             <div className="header-center-mode-wrap">
               <div className="header-single-title-pill">
@@ -146,7 +196,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Sticky Phases Rail inside header for Audit View */}
         {activeTab === 'audit' && onSelectSegment && summary && (
-          <div className="header-phases-subbar">
+          <div className={`header-phases-subbar ${isScrolled ? 'is-scrolled-hidden' : ''}`}>
             <div className="phases-rail-container" ref={phasesRailRef}>
               {/* Nivel 0: Sucursal Chip */}
               {onEditSetup && (
@@ -193,8 +243,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Side Menu Drawer Component */}
       {isSideMenuOpen && (
-        <div className="side-menu-backdrop" onClick={() => setIsSideMenuOpen(false)}>
-          <div className="side-menu-drawer" onClick={e => e.stopPropagation()}>
+        <div className={`side-menu-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={handleCloseMenu}>
+          <div className={`side-menu-drawer ${isClosing ? 'is-closing' : ''}`} onClick={e => e.stopPropagation()}>
             <div className="side-menu-header">
               <div className="brand-logo-wrap">
                 <img src="logo.png" alt="Mi Gusto" className="brand-logo-img" />
@@ -202,7 +252,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 className="icon-btn-subtle"
-                onClick={() => setIsSideMenuOpen(false)}
+                onClick={handleCloseMenu}
                 aria-label="Cerrar menú"
               >
                 <X size={20} />

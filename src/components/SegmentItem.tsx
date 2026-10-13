@@ -5,7 +5,6 @@ import { fmtPts } from '../utils/formatters';
 import { blobToDataUrl, shrinkImage } from '../utils/image';
 import { 
   Check, 
-  Slash, 
   X, 
   Camera, 
   Plus, 
