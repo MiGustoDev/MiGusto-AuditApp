@@ -13,8 +13,8 @@ interface ActionToolbarProps {
   onSave: (record: ReturnType<typeof buildRecordToSave>) => Promise<{ ok: boolean; error?: string }>;
   onReset: () => void;
   onDownload?: (filename: string, text: string) => void;
-  toast?: { msg: string; isErr: boolean } | null;
-  setToast: (toast: { msg: string; isErr: boolean } | null) => void;
+  toast?: { msg: string; isErr: boolean; type?: any } | null;
+  setToast: (toast: any) => void;
   flashMessage?: (msg: string, isErr?: boolean) => void;
   saveNote?: string;
   onJumpToSummary?: () => void;

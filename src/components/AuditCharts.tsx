@@ -32,16 +32,112 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
   const medPerfSegs = summary.rows.filter(r => r.ideal > 0 && (r.real / r.ideal) * 100 >= 60 && (r.real / r.ideal) * 100 < 85);
   const lowPerfSegs = summary.rows.filter(r => r.ideal > 0 && (r.real / r.ideal) * 100 < 60);
 
-  // Stagger animation on mount
+  // Stagger animation & count-up increment on mount
   useEffect(() => {
-    if (containerRef.current) {
+    if (!containerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      // 1. Entrance animation for card boxes
       gsap.fromTo(
-        containerRef.current.querySelectorAll('.chart-card-box, .kpi-card'),
+        '.chart-card-box, .kpi-card',
         { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, duration: 0.35, stagger: 0.05, ease: 'power2.out', clearProps: 'all' }
+        { opacity: 1, y: 0, duration: 0.35, stagger: 0.04, ease: 'power2.out', clearProps: 'all' }
       );
-    }
-  }, []);
+
+      // 2. Animate KPI numbers (count-up increment)
+      const scoreEl = containerRef.current?.querySelector<HTMLElement>('.anim-kpi-score');
+      if (scoreEl) {
+        const proxy = { val: 0 };
+        gsap.to(proxy, {
+          val: totalScore,
+          duration: 1.1,
+          ease: 'power2.out',
+          onUpdate: () => {
+            scoreEl.textContent = proxy.val.toFixed(2);
+          }
+        });
+      }
+
+      const devsEl = containerRef.current?.querySelector<HTMLElement>('.anim-kpi-devs');
+      if (devsEl) {
+        const proxy = { val: 0 };
+        gsap.to(proxy, {
+          val: devsCount,
+          duration: 0.9,
+          ease: 'power2.out',
+          onUpdate: () => {
+            devsEl.textContent = `${Math.round(proxy.val)} hallazgos`;
+          }
+        });
+      }
+
+      const efectEl = containerRef.current?.querySelector<HTMLElement>('.anim-kpi-efectividad');
+      if (efectEl) {
+        const proxy = { val: 0 };
+        gsap.to(proxy, {
+          val: totalScore,
+          duration: 1.1,
+          ease: 'power2.out',
+          onUpdate: () => {
+            efectEl.textContent = `${proxy.val.toFixed(1)}%`;
+          }
+        });
+      }
+
+      // 3. Animate Donut circular ring & center percentage
+      const donutCircle = containerRef.current?.querySelector<SVGElement>('.donut-segment');
+      const targetOffset = 301 - (301 * totalScore) / 100;
+      if (donutCircle) {
+        gsap.fromTo(
+          donutCircle,
+          { strokeDashoffset: 301 },
+          { strokeDashoffset: targetOffset, duration: 1.2, delay: 0.1, ease: 'power2.out' }
+        );
+      }
+
+      const donutText = containerRef.current?.querySelector<HTMLElement>('.anim-donut-score');
+      if (donutText) {
+        const proxy = { val: 0 };
+        gsap.to(proxy, {
+          val: totalScore,
+          duration: 1.2,
+          delay: 0.1,
+          ease: 'power2.out',
+          onUpdate: () => {
+            donutText.textContent = `${proxy.val.toFixed(0)}%`;
+          }
+        });
+      }
+
+      // 4. Animate horizontal loading bars & percentage numbers
+      const barFills = containerRef.current?.querySelectorAll<HTMLElement>('.bar-fill');
+      barFills?.forEach((bar, idx) => {
+        const targetW = bar.getAttribute('data-target-width') || '0';
+        gsap.fromTo(
+          bar,
+          { width: '0%' },
+          { width: `${targetW}%`, duration: 0.85, delay: 0.08 + idx * 0.035, ease: 'power2.out' }
+        );
+      });
+
+      const barPcts = containerRef.current?.querySelectorAll<HTMLElement>('.anim-bar-pct');
+      barPcts?.forEach((span, idx) => {
+        const targetPct = parseFloat(span.getAttribute('data-pct') || '0');
+        const proxy = { val: 0 };
+        gsap.to(proxy, {
+          val: targetPct,
+          duration: 0.85,
+          delay: 0.08 + idx * 0.035,
+          ease: 'power2.out',
+          onUpdate: () => {
+            span.textContent = `${proxy.val.toFixed(0)}%`;
+          }
+        });
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, [totalScore, devsCount]);
 
   return (
     <div ref={containerRef} className="audit-charts-container">
@@ -52,7 +148,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
           <div className="kpi-content">
             <span className="kpi-label">Puntaje Final</span>
             <div className="kpi-val-row">
-              <span className="kpi-value num">{f2(totalScore)}</span>
+              <span className="kpi-value num anim-kpi-score">{f2(totalScore)}</span>
               <span className="kpi-unit">/ 100</span>
             </div>
             <span className="kpi-subtext">Meta: {PASS_SCORE} pts</span>
@@ -78,7 +174,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
           <div className="kpi-icon-wrap"><ShieldAlert size={18} /></div>
           <div className="kpi-content">
             <span className="kpi-label">Desvíos Detectados</span>
-            <span className="kpi-value num">{devsCount} hallazgos</span>
+            <span className="kpi-value num anim-kpi-devs">{devsCount} hallazgos</span>
             <span className="kpi-subtext">{devsCount === 0 ? 'Sin desvíos' : 'Pendientes de corrección'}</span>
           </div>
         </div>
@@ -87,7 +183,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
           <div className="kpi-icon-wrap"><Award size={18} /></div>
           <div className="kpi-content">
             <span className="kpi-label">Efectividad Global</span>
-            <span className="kpi-value num">{totalScore.toFixed(1)}%</span>
+            <span className="kpi-value num anim-kpi-efectividad">{totalScore.toFixed(1)}%</span>
             <span className="kpi-subtext">Calidad Operativa</span>
           </div>
         </div>
@@ -114,11 +210,14 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
                 <div key={r.si} className="bar-row-item">
                   <div className="bar-row-header">
                     <span className="bar-row-title">{r.si + 1}. {r.seg.name}</span>
-                    <span className="bar-row-val num"><b>{f2(r.real)}</b> / {f2(r.ideal)} pts ({pct.toFixed(0)}%)</span>
+                    <span className="bar-row-val num">
+                      <b>{f2(r.real)}</b> / {f2(r.ideal)} pts (<span className="anim-bar-pct" data-pct={pct}>{pct.toFixed(0)}%</span>)
+                    </span>
                   </div>
                   <div className="bar-track">
                     <div 
                       className={`bar-fill ${barColor}`} 
+                      data-target-width={Math.min(100, pct)}
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>
@@ -154,7 +253,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
                 />
               </svg>
               <div className="donut-center-content">
-                <span className="donut-score-val num">{totalScore.toFixed(0)}%</span>
+                <span className="donut-score-val num anim-donut-score">{totalScore.toFixed(0)}%</span>
                 <span className="donut-label">Calidad</span>
               </div>
             </div>

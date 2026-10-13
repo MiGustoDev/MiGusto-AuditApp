@@ -17,6 +17,13 @@ import { UnfinishedAuditModal } from './components/UnfinishedAuditModal';
 import { getSegments, getTotalItems } from './data/segments';
 import { buildRecordToSave } from './utils/formatters';
 import { AuditMode } from './types/audit';
+import { Sparkles, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
+
+export interface ToastState {
+  msg: string;
+  isErr: boolean;
+  type?: 'experience' | 'normal' | 'success' | 'error' | 'info';
+}
 
 export function App() {
   const [auditMode, setAuditMode] = useState<AuditMode>(() => {
@@ -155,7 +162,7 @@ export function App() {
   }, []);
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; isErr: boolean } | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
   const toastTimeoutRef = useRef<any>(null);
 
   // Animate toast notification with GSAP
@@ -163,8 +170,8 @@ export function App() {
     if (toast && toastRef.current) {
       gsap.fromTo(
         toastRef.current,
-        { opacity: 0, y: 20, scale: 0.95 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: 'back.out(1.5)' }
+        { opacity: 0, y: 24, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: 'back.out(1.6)' }
       );
     }
   }, [toast]);
@@ -173,14 +180,21 @@ export function App() {
   useWakeLock(summary.done > 0);
 
   // Toast notification state & auto-dismiss timeout
-  const flashMessage = (msg: string, isErr = false) => {
-    setToast({ msg, isErr });
+  const flashMessage = (msg: string, isErr = false, type?: ToastState['type']) => {
+    let resolvedType = type;
+    if (!resolvedType) {
+      if (isErr) resolvedType = 'error';
+      else if (msg.toLowerCase().includes('experience')) resolvedType = 'experience';
+      else if (msg.toLowerCase().includes('normal')) resolvedType = 'normal';
+      else resolvedType = 'success';
+    }
+    setToast({ msg, isErr, type: resolvedType });
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
     toastTimeoutRef.current = setTimeout(() => {
       setToast(null);
-    }, isErr ? 4000 : 2500);
+    }, isErr ? 4000 : 2600);
   };
 
   const handleFullReset = () => {
@@ -384,8 +398,38 @@ export function App() {
 
       {/* Toast Notification Alert */}
       {toast && (
-        <div ref={toastRef} className={`toast-notification ${toast.isErr ? 'is-error' : 'is-success'}`} role="status">
-          <span>{toast.msg}</span>
+        <div 
+          ref={toastRef} 
+          className={`toast-notification toast-${toast.type || (toast.isErr ? 'error' : 'success')}`} 
+          role="status"
+        >
+          <div className="toast-icon-bubble">
+            {toast.type === 'experience' ? (
+              <Sparkles size={16} className="toast-icon-sparkle" />
+            ) : toast.type === 'normal' ? (
+              <Layers size={16} className="toast-icon-layers" />
+            ) : toast.isErr ? (
+              <AlertCircle size={16} className="toast-icon-alert" />
+            ) : (
+              <CheckCircle2 size={16} className="toast-icon-check" />
+            )}
+          </div>
+
+          <div className="toast-body">
+            {toast.type === 'experience' ? (
+              <>
+                <div className="toast-title">Auditoría Experience</div>
+                <div className="toast-subtitle">Modo 12 fases activado</div>
+              </>
+            ) : toast.type === 'normal' ? (
+              <>
+                <div className="toast-title">Auditoría Normal</div>
+                <div className="toast-subtitle">Modo estándar (9 fases) activado</div>
+              </>
+            ) : (
+              <div className="toast-title toast-single-line">{toast.msg}</div>
+            )}
+          </div>
         </div>
       )}
 
