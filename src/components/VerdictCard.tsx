@@ -7,10 +7,9 @@ import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 
 interface VerdictCardProps {
   summary: AuditSummary;
-  onFinishAudit?: () => void;
 }
 
-export const VerdictCard: React.FC<VerdictCardProps> = ({ summary, onFinishAudit }) => {
+export const VerdictCard: React.FC<VerdictCardProps> = ({ summary }) => {
   const isApproved = summary.total >= PASS_SCORE;
   const ptsDiff = summary.total - PASS_SCORE;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -49,19 +48,6 @@ export const VerdictCard: React.FC<VerdictCardProps> = ({ summary, onFinishAudit
             </>
           )}
         </p>
-
-        {onFinishAudit && (
-          <div style={{ marginTop: '14px' }}>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline"
-              onClick={onFinishAudit}
-              style={{ background: 'rgba(56, 189, 248, 0.15)', borderColor: '#38bdf8', color: '#38bdf8', fontWeight: 600 }}
-            >
-              Finalizar evaluación e Iniciar nueva sucursal
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -326,7 +326,7 @@ export function App() {
         {/* ============================================================ */}
         {activeTab === 'summary' && (
           <div ref={tabContentRef} className="summary-tab-content">
-            <VerdictCard summary={summary} onFinishAudit={handleFullReset} />
+            <VerdictCard summary={summary} />
 
             {/* CHARTS & ANALYTICS SECTION */}
             <AuditCharts
