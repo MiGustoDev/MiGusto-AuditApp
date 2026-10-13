@@ -102,7 +102,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
               <BarChart3 size={18} className="chart-icon" />
               <h3>Rendimiento por Fase Operativa</h3>
             </div>
-            <span className="chart-badge">9 Fases Evaluadas</span>
+            <span className="chart-badge">{summary.rows.length} Fases Evaluadas</span>
           </div>
 
           <div className="horizontal-bars-list">
@@ -165,7 +165,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
                 <div className="metric-indicator bg-green" />
                 <div className="metric-info">
                   <span className="metric-name">Fases en Estándar (≥ 85%)</span>
-                  <span className="metric-count">{highPerfSegs.length} de 9 fases</span>
+                  <span className="metric-count">{highPerfSegs.length} de {summary.rows.length} fases</span>
                 </div>
               </div>
 
@@ -173,7 +173,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
                 <div className="metric-indicator bg-amber" />
                 <div className="metric-info">
                   <span className="metric-name">Fases Aceptables (60-84%)</span>
-                  <span className="metric-count">{medPerfSegs.length} de 9 fases</span>
+                  <span className="metric-count">{medPerfSegs.length} de {summary.rows.length} fases</span>
                 </div>
               </div>
 
@@ -181,7 +181,7 @@ export const AuditCharts: React.FC<AuditChartsProps> = ({ summary, storeName }) 
                 <div className="metric-indicator bg-red" />
                 <div className="metric-info">
                   <span className="metric-name">Fases Críticas (&lt; 60%)</span>
-                  <span className="metric-count">{lowPerfSegs.length} de 9 fases</span>
+                  <span className="metric-count">{lowPerfSegs.length} de {summary.rows.length} fases</span>
                 </div>
               </div>
             </div>

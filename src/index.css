@@ -2317,8 +2317,9 @@ html, body {
 }
 
 .hist-subhead {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 700;
+  color: var(--fg);
   margin-bottom: 6px;
 }
 
@@ -2346,6 +2347,21 @@ html, body {
   background: var(--bad-soft);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.hist-clean-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.clean-check-green {
+  color: #10b981 !important;
+  stroke: #10b981 !important;
   flex-shrink: 0;
 }
 
@@ -3749,13 +3765,6 @@ html, body {
   }
 }
 
-@media (max-width: 480px) {
-  .kpi-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-}
-
 .kpi-card {
   padding: 12px 14px;
   border-radius: var(--radius-lg);
@@ -3867,12 +3876,16 @@ html, body {
 }
 
 .chart-badge {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--fg-muted);
   background: var(--surface-2);
   padding: 3px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  width: fit-content;
+  max-width: fit-content;
+  flex-shrink: 0;
 }
 
 /* Horizontal Bars List */
@@ -3891,16 +3904,23 @@ html, body {
 .bar-row-header {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
   font-size: 0.8rem;
 }
 
 .bar-row-title {
   font-weight: 600;
   color: var(--fg);
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .bar-row-val {
   color: var(--fg-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .bar-track {
@@ -3925,12 +3945,6 @@ html, body {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-
-@media (max-width: 540px) {
-  .health-distribution-wrapper {
-    flex-direction: column;
-  }
 }
 
 .donut-chart-box {
@@ -4379,6 +4393,147 @@ html, body {
     max-width: 100% !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
+  }
+  .kpi-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .kpi-card {
+    padding: 10px 8px !important;
+    gap: 8px !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .kpi-icon-wrap {
+    padding: 6px !important;
+  }
+  .kpi-icon-wrap svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  .kpi-label {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.02em !important;
+  }
+  .kpi-value {
+    font-size: 0.95rem !important;
+  }
+  .kpi-unit {
+    font-size: 0.72rem !important;
+  }
+  .dictamen-chip {
+    font-size: 0.72rem !important;
+    padding: 1px 6px !important;
+  }
+  .kpi-subtext {
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* 1. Bar chart rows: points strictly in 1 line */
+  .bar-row-header {
+    font-size: 0.74rem !important;
+    gap: 6px !important;
+    align-items: baseline !important;
+  }
+  .bar-row-title {
+    font-size: 0.74rem !important;
+    line-height: 1.25 !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .bar-row-val {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    text-align: right !important;
+  }
+
+  /* 2. Chart badge: size hugs text */
+  .chart-header {
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+  .chart-title-wrap {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .chart-title-wrap h3 {
+    font-size: 0.92rem !important;
+  }
+  .chart-badge {
+    font-size: 0.65rem !important;
+    padding: 3px 8px !important;
+    border-radius: var(--radius-full) !important;
+    white-space: nowrap !important;
+    width: fit-content !important;
+    max-width: fit-content !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* 3. Donut chart circle left, metrics right */
+  .health-distribution-wrapper {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .donut-chart-box {
+    width: 90px !important;
+    height: 90px !important;
+    flex-shrink: 0 !important;
+  }
+  .donut-score-val {
+    font-size: 1.15rem !important;
+  }
+  .donut-label {
+    font-size: 0.62rem !important;
+  }
+  .health-metrics-list {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+  }
+  .health-metric-item {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    border-radius: var(--radius-sm) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .metric-name {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .metric-count {
+    font-size: 0.64rem !important;
+  }
+  .hist-subhead {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: var(--fg) !important;
+  }
+  .hist-clean-note {
+    font-size: 0.82rem !important;
+    font-weight: 400 !important;
+    color: var(--fg-muted) !important;
+  }
+  .hist-footer-meta {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+  }
+  .hist-footer-meta .dot-sep {
+    display: none !important;
   }
 }
 

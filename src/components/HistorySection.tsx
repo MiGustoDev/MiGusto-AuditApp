@@ -18,7 +18,6 @@ import {
   FileSpreadsheet,
   FileText,
   Mail,
-  ArrowLeft,
   Check
 } from 'lucide-react';
 
@@ -124,20 +123,6 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
 
   return (
     <section className="history-wrapper card" aria-label="Historial de auditorías">
-      {/* Subtle Volver button placed above Historial de Auditorías */}
-      {expandedId && (
-        <div className="subtle-back-top-bar animate-fade-in">
-          <button
-            type="button"
-            className="btn-subtle-back"
-            onClick={() => setExpandedId(null)}
-          >
-            <ArrowLeft size={14} />
-            <span>Volver al historial</span>
-          </button>
-        </div>
-      )}
-
       <div className="section-header-row">
         <div>
           <h2 className="section-title">Historial de Auditorías</h2>
@@ -262,21 +247,6 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
 
                 {isExpanded && (
                   <div className="history-card-details animate-slide-down">
-                    {/* Top bar to return to collapsed history list */}
-                    <div className="hist-back-nav-row">
-                      <button
-                        type="button"
-                        className="btn-hist-back"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedId(null);
-                        }}
-                      >
-                        <ArrowLeft size={16} />
-                        <span>Volver</span>
-                      </button>
-                    </div>
-
                     {/* FULL CHARTS & EXECUTIVE ANALYTICS COMPONENT */}
                     <AuditCharts
                       summary={{
@@ -330,7 +300,10 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                           ))}
                         </div>
                       ) : (
-                        <p className="hist-clean-note">✓ Sin desvíos registrados</p>
+                        <p className="hist-clean-note">
+                          <Check size={16} className="clean-check-green" />
+                          <span>Sin desvíos registrados</span>
+                        </p>
                       )}
                     </div>
 
