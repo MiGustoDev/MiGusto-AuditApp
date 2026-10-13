@@ -166,11 +166,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           )}
 
-          {/* Right Section: Universal Hamburger Menu Button */}
+          {/* Right Section: Mobile Hamburger Menu & Desktop Historial Button */}
           <div className="header-right-nav-section">
             <button
               type="button"
-              className="btn-side-menu-trigger"
+              className="btn-side-menu-trigger mobile-only"
               onClick={handleOpenMenu}
               aria-label="Abrir menú de opciones"
               title="Menú de navegación"
@@ -178,12 +178,41 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Menu size={20} />
               {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
             </button>
+
+            {/* Desktop Navigation: Historial / Auditoría Button */}
+            <div className="desktop-header-actions">
+              {activeTab === 'history' ? (
+                <button
+                  type="button"
+                  className="desktop-nav-btn active"
+                  onClick={() => onTabChange('audit')}
+                  title="Volver a la auditoría"
+                >
+                  <ClipboardCheck size={16} />
+                  <span>Auditoría</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="desktop-nav-btn"
+                  onClick={() => onTabChange('history')}
+                  title="Ver historial de auditorías"
+                >
+                  <History size={16} />
+                  <span>Historial</span>
+                  {historyCount > 0 && (
+                    <span className="tab-badge neutral">{historyCount}</span>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Sticky Phases Rail inside header for Audit View */}
+        {/* Sticky Phases Rail inside header for Mobile View only */}
         {activeTab === 'audit' && onSelectSegment && summary && (
-          <div className={`header-phases-subbar ${isScrolled ? 'is-scrolled-hidden' : ''}`}>
+          <div className={`header-phases-subbar mobile-only ${isScrolled ? 'is-scrolled-hidden' : ''}`}>
+            {/* Mobile Rail (capsules) */}
             <div className="phases-rail-container" ref={phasesRailRef}>
               {/* Nivel 0: Sucursal Chip */}
               {onEditSetup && (

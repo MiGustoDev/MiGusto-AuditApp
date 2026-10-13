@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { AuditFields } from '../types/audit';
-import { Store, User, Users, ShoppingBag, Briefcase, Play } from 'lucide-react';
+import { Store, User, Users, ShoppingBag, Briefcase, Play, X } from 'lucide-react';
 import { CustomDatePicker } from './CustomDatePicker';
 
 interface GeneralFieldsProps {
@@ -9,13 +9,15 @@ interface GeneralFieldsProps {
   onFieldChange: (field: keyof AuditFields, value: string) => void;
   onStartAudit: () => void;
   isStarted: boolean;
+  onClose?: () => void;
 }
 
 export const GeneralFields: React.FC<GeneralFieldsProps> = ({
   fields,
   onFieldChange,
   onStartAudit,
-  isStarted
+  isStarted,
+  onClose
 }) => {
   const containerRef = useRef<HTMLElement>(null);
 
@@ -39,6 +41,17 @@ export const GeneralFields: React.FC<GeneralFieldsProps> = ({
           </div>
           <p className="setup-sub-text">Cargá los datos de la sucursal y del auditor para iniciar la auditoría.</p>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            className="icon-btn-subtle"
+            onClick={onClose}
+            title="Cerrar y volver a la auditoría"
+            aria-label="Cerrar modal"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       <div className="fields-single-line">

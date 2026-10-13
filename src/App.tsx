@@ -14,6 +14,7 @@ import { HistorySection } from './components/HistorySection';
 import { PhotoLightbox } from './components/PhotoLightbox';
 import { AuditCharts } from './components/AuditCharts';
 import { UnfinishedAuditModal } from './components/UnfinishedAuditModal';
+import { DesktopPhasesBar } from './components/DesktopPhasesBar';
 import { getSegments, getTotalItems } from './data/segments';
 import { buildRecordToSave } from './utils/formatters';
 import { AuditMode } from './types/audit';
@@ -265,14 +266,34 @@ export function App() {
         {/* ============================================================ */}
         {activeTab === 'audit' && (
           <div ref={tabContentRef} className="audit-tab-content">
-            {/* STEP 1: PRE-AUDIT SETUP FORM */}
+            {/* STANDALONE DESKTOP PHASES BAR (OUTSIDE NAVBAR, INCLUDES NIVEL 0) */}
+            <DesktopPhasesBar
+              auditMode={auditMode}
+              summary={summary}
+              currentSegment={currentSegment}
+              auditStep={auditStep}
+              onSelectSegment={handleSelectSegment}
+              onEditSetup={handleEditSetup}
+            />
+
+            {/* STEP 1: PRE-AUDIT SETUP FORM (MODAL ON DESKTOP) */}
             {auditStep === 'setup' ? (
-              <GeneralFields
-                fields={state.fields}
-                onFieldChange={setField}
-                onStartAudit={handleStartAudit}
-                isStarted={isAuditStarted}
-              />
+              <div 
+                className="setup-modal-desktop-overlay"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget && isAuditStarted) {
+                    setAuditStep('evaluate');
+                  }
+                }}
+              >
+                <GeneralFields
+                  fields={state.fields}
+                  onFieldChange={setField}
+                  onStartAudit={handleStartAudit}
+                  isStarted={isAuditStarted}
+                  onClose={isAuditStarted ? () => setAuditStep('evaluate') : undefined}
+                />
+              </div>
             ) : (
               /* STEP 2: EVALUATION MODE (NO GENERAL FIELDS PANEL VISIBLE) */
               <>

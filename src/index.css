@@ -177,6 +177,7 @@ input[type="date"],
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   padding-bottom: 0;
 }
@@ -186,6 +187,24 @@ input[type="date"],
   max-width: 1440px;
   margin: 0 auto;
   padding: 16px 28px 12px 28px;
+  flex: 1 0 auto;
+}
+
+.app-footer {
+  margin-top: auto;
+  width: 100%;
+  padding: 20px;
+  text-align: center;
+  color: var(--fg-subtle);
+  font-size: 0.82rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 95;
+}
+
+.app-footer p {
+  margin: 0;
+  color: var(--fg-subtle);
 }
 
 @media (max-width: 600px) {
@@ -215,7 +234,7 @@ input[type="date"],
   position: sticky;
   top: 0;
   z-index: 90;
-  background: rgba(19, 27, 46, 0.92);
+  background: rgba(19, 27, 46, 0.95);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--line);
@@ -240,14 +259,18 @@ input[type="date"],
 
 .header-inner {
   width: 100%;
-  max-width: 1440px;
-  margin: 0 auto;
+  max-width: 100%;
   padding: 10px 28px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   position: relative;
+  box-sizing: border-box;
 }
 
 .brand-section {
@@ -757,8 +780,8 @@ input[type="date"],
 
 .fields-single-line {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
   align-items: flex-end;
   width: 100%;
 }
@@ -2790,9 +2813,6 @@ html, body {
    ========================================================================== */
 
 @media (max-width: 1024px) {
-  .fields-single-line {
-    grid-template-columns: repeat(3, 1fr);
-  }
   .phases-grid-all {
     grid-template-columns: repeat(5, 1fr);
   }
@@ -2810,12 +2830,85 @@ html, body {
    ========================================================================== */
 
 .header-phases-subbar {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  padding: 6px 14px 8px 14px;
+  background: transparent;
+  border: none;
+  border-top: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 8px 14px 10px 14px;
   width: 100%;
+}
+
+/* Responsive visibility for mobile capsules vs standalone desktop phases */
+@media (max-width: 768px) {
+  .desktop-phases-standalone,
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+
+  /* El header-phases-subbar iba dentro del navbar; en desktop se oculta porque las fases van POR FUERA del navbar */
+  .header-phases-subbar {
+    display: none !important;
+  }
+
+  .desktop-phases-standalone {
+    width: 100%;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    z-index: 92;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  /* 10 columnas en modo normal (Nivel 0 Sucursal + 9 fases) */
+  .phases-grid-normal {
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+  }
+
+  /* 13 columnas en modo experience (Nivel 0 Sucursal + 12 fases) */
+  .phases-grid-experience {
+    grid-template-columns: repeat(13, minmax(0, 1fr)) !important;
+  }
+
+  /* Nivel 0 Sucursal Card en Desktop */
+  .phase-card-btn.phase-card-level-zero {
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+
+  .phase-card-btn.phase-card-level-zero:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  .phase-card-btn.phase-card-level-zero.active.level-zero-active {
+    background: rgba(245, 158, 11, 0.16) !important;
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.35), inset 0 0 8px rgba(245, 158, 11, 0.1) !important;
+  }
+
+  .phase-card-btn.phase-card-level-zero.active.level-zero-active .phase-number-tag.level-zero-tag {
+    background: #f59e0b !important;
+    color: #111827 !important;
+    font-weight: 900 !important;
+  }
+
+  .phase-pct-tag.level-zero-active-text {
+    color: #fbbf24 !important;
+    font-weight: 800 !important;
+  }
+
+  /* Ocultar las fases duplicadas dentro de Scoreboard en desktop */
+  .scoreboard-card .phases-integrated-container {
+    display: none !important;
+  }
 }
 
 .phases-rail-container {
@@ -3124,6 +3217,68 @@ html, body {
   border: 2px solid var(--surface-2);
 }
 
+/* DESKTOP HEADER ACTIONS */
+.desktop-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desktop-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--fg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.desktop-nav-btn:hover {
+  background: var(--surface-3);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.desktop-nav-btn.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.desktop-nav-btn .tab-badge {
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--surface-3);
+  color: var(--fg-muted);
+}
+
+@media (max-width: 768px) {
+  .desktop-header-actions {
+    display: none !important;
+  }
+  .btn-side-menu-trigger.mobile-only {
+    display: inline-flex !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .btn-side-menu-trigger.mobile-only {
+    display: none !important;
+  }
+  .desktop-header-actions {
+    display: flex !important;
+  }
+}
+
 /* SIDE MENU DRAWER */
 .side-menu-backdrop {
   position: fixed;
@@ -3422,13 +3577,53 @@ html, body {
    WIZARD STEP 1 SETUP CARD (DATOS DEL LOCAL PREVIO)
    ========================================================================== */
 
+/* Modal desktop centrado con fondo blureado */
+@media (min-width: 769px) {
+  .setup-modal-desktop-overlay {
+    position: fixed;
+    top: 195px;
+    bottom: 55px;
+    left: 0;
+    right: 0;
+    z-index: 85;
+    background: rgba(8, 12, 22, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 24px;
+    overflow-y: auto;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  .setup-modal-desktop-overlay .general-card-setup {
+    max-width: 840px;
+    width: 100%;
+    margin: auto;
+    background: #131b2e;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 35px rgba(59, 130, 246, 0.1);
+    animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+}
+
+@media (max-width: 768px) {
+  .setup-modal-desktop-overlay {
+    display: contents !important;
+  }
+}
+
 .general-card-setup {
-  padding: 24px;
+  padding: 28px 32px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
-  margin-bottom: 24px;
+  margin: 0 auto 28px auto;
+  max-width: 880px;
+  width: 100%;
 }
 
 .setup-header-row {
@@ -3465,16 +3660,21 @@ html, body {
 
 .setup-title-heading-row {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.setup-title-heading-row .setup-step-pill {
-  order: 1;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
 }
 
 .setup-title-heading-row .setup-main-title {
+  order: 1;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.setup-title-heading-row .setup-step-pill {
   order: 2;
+  align-self: center;
+  white-space: nowrap;
 }
 
 .setup-step-pill {
@@ -3511,20 +3711,21 @@ html, body {
 }
 
 .btn-start-audit-primary {
-  width: 100%;
-  max-width: 320px;
+  width: auto;
+  max-width: max-content;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 12px 24px;
+  padding: 10px 22px;
   border-radius: var(--radius-lg);
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #ffffff;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border: none;
   cursor: pointer;
+  white-space: nowrap;
   box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
   transition: all 0.2s ease;
   touch-action: manipulation;
@@ -3541,7 +3742,7 @@ html, body {
   transform: scale(0.97);
 }
 
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   /* Quitar apariencia de navbar a las cápsulas de segmentos */
   .app-header {
     background: transparent !important;
