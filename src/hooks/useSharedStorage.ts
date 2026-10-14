@@ -59,7 +59,8 @@ export function useSharedStorage() {
         const local = loadLocalRecords();
         setRecords(local);
       } else if (data) {
-        const mapped: SavedAuditRecord[] = data.map((item: any) => ({
+        const auditRows = data.filter((item: any) => item.id !== '00000000-0000-0000-0000-000000000001' && item.tienda !== '__CONFIG_STORE__');
+        const mapped: SavedAuditRecord[] = auditRows.map((item: any) => ({
           _id: item.id?.toString() || item._id,
           tienda: item.tienda || '',
           auditor: item.auditor || '',

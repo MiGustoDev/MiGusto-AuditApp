@@ -70,7 +70,7 @@ export const SEGMENTS: SegmentDef[] = [
   },
   {
     name: 'Mantenimiento e infraestructura',
-    short: 'Mantenimiento',
+    short: 'Mantenim.',
     items: [
       { points: 2.5, text: 'Tableros, enchufes y cableado en buen estado, bien instalados e identificados.' },
       { points: 2, text: 'Burletes y manijas de heladeras en óptimas condiciones.' },
@@ -93,7 +93,7 @@ export const SEGMENTS: SegmentDef[] = [
   },
   {
     name: 'Administración',
-    short: 'Administración',
+    short: 'Admin.',
     items: [
       { points: 1, text: 'Habilitación vigente y exhibida.' },
       { points: 0.75, text: 'Formulario 960 actualizado.' },
@@ -191,7 +191,7 @@ export const EXPERIENCE_SEGMENTS: SegmentDef[] = [
   },
   {
     name: 'Mantenimiento e infraestructura',
-    short: 'Mantenimiento',
+    short: 'Mantenim.',
     items: [
       { points: 2, text: 'Tableros, enchufes y cableado en buen estado, bien instalados e identificados.' },
       { points: 1.5, text: 'Burletes y manijas de heladeras en óptimas condiciones.' },
@@ -214,7 +214,7 @@ export const EXPERIENCE_SEGMENTS: SegmentDef[] = [
   },
   {
     name: 'Administración',
-    short: 'Administración',
+    short: 'Admin.',
     items: [
       { points: 1, text: 'Habilitación vigente y exhibida.' },
       { points: 0.75, text: 'Formulario 960 actualizado.' },

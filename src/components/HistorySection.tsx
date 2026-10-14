@@ -214,15 +214,6 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
           <h2 className="section-title">Historial de Auditorías</h2>
           <p className="section-subtitle">Consultá los informes operativos anteriores guardados en el sistema.</p>
         </div>
-        <span className="history-count-badge num">
-          {records.length === 0 ? (
-            '0 registros'
-          ) : filteredList.length === records.length ? (
-            `${records.length} ${records.length === 1 ? 'registro' : 'registros'}`
-          ) : (
-            `${filteredList.length} de ${records.length} registros`
-          )}
-        </span>
       </div>
 
       {/* Search Bar & Dropdown Filter */}

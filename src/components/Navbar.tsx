@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles, LogOut, User as UserIcon } from 'lucide-react';
+import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles, LogOut, User as UserIcon, KeyRound, ChevronDown, ShieldCheck, Lock } from 'lucide-react';
 import { getSegments } from '../data/segments';
 import { AuditSummary } from '../types/audit';
 import { UserProfile } from '../lib/auth';
@@ -22,6 +22,7 @@ interface NavbarProps {
   auditStep?: 'setup' | 'evaluate';
   currentUser?: UserProfile | null;
   onLogout?: () => void;
+  onOpenChangePassword?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -39,13 +40,29 @@ export const Navbar: React.FC<NavbarProps> = ({
   onModeChange,
   auditStep = 'evaluate',
   currentUser,
-  onLogout
+  onLogout,
+  onOpenChangePassword
 }) => {
   const activePhaseRef = useRef<HTMLButtonElement>(null);
   const phasesRailRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Close user dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isUserMenuOpen]);
 
   const handleOpenMenu = () => {
     setIsClosing(false);
@@ -63,13 +80,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isSideMenuOpen && !isClosing) {
-        handleCloseMenu();
+      if (e.key === 'Escape') {
+        if (isUserMenuOpen) setIsUserMenuOpen(false);
+        if (isSideMenuOpen && !isClosing) handleCloseMenu();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSideMenuOpen, isClosing]);
+  }, [isSideMenuOpen, isClosing, isUserMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -134,29 +152,39 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Center: Always show Mode Switcher (Normal / Experience) */}
-          {onModeChange && (
+          {/* Center: When in Historial, show sleek history count badge. When in Auditoría, show Mode Switcher (Normal / Experience) */}
+          {activeTab === 'history' ? (
             <div className="header-center-mode-wrap">
-              <div className="audit-mode-switcher-pill" role="group" aria-label="Tipo de auditoría">
-                <button
-                  type="button"
-                  className={`mode-btn ${auditMode === 'normal' ? 'active' : ''}`}
-                  onClick={() => onModeChange('normal')}
-                  title="Auditoría Normal Estándar (9 fases)"
-                >
-                  <span>Normal</span>
-                </button>
-                <button
-                  type="button"
-                  className={`mode-btn experience ${auditMode === 'experience' ? 'active' : ''}`}
-                  onClick={() => onModeChange('experience')}
-                  title="Auditoría Mi Gusto Experience (12 fases)"
-                >
-                  <Sparkles size={13} className="mode-sparkle-icon" />
-                  <span>Experience</span>
-                </button>
+              <div className="header-history-badge" title={`${historyCount} auditorías registradas en el historial`}>
+                <History size={13} className="header-history-badge-icon" />
+                <span className="header-history-badge-num">{historyCount}</span>
+                <span className="header-history-badge-label">{historyCount === 1 ? 'registro' : 'registros'}</span>
               </div>
             </div>
+          ) : (
+            onModeChange && (
+              <div className="header-center-mode-wrap">
+                <div className="audit-mode-switcher-pill" role="group" aria-label="Tipo de auditoría">
+                  <button
+                    type="button"
+                    className={`mode-btn ${auditMode === 'normal' ? 'active' : ''}`}
+                    onClick={() => onModeChange('normal')}
+                    title="Auditoría Normal Estándar (9 fases)"
+                  >
+                    <span>Normal</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-btn experience ${auditMode === 'experience' ? 'active' : ''}`}
+                    onClick={() => onModeChange('experience')}
+                    title="Auditoría Mi Gusto Experience (12 fases)"
+                  >
+                    <Sparkles size={13} className="mode-sparkle-icon" />
+                    <span>Experience</span>
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {/* Right Section: Mobile Hamburger Menu & Desktop Switch */}
@@ -202,23 +230,82 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
 
-              {/* User profile & Logout */}
+              {/* User Profile & Dropdown Trigger */}
               {currentUser && (
-                <div className="header-user-badge" title={`${currentUser.name} (${currentUser.roleLabel})`}>
-                  <div className="header-user-info">
-                    <span className="header-user-name">{currentUser.name}</span>
-                    <span className="header-user-role">{currentUser.roleLabel}</span>
-                  </div>
-                  {onLogout && (
-                    <button
-                      type="button"
-                      onClick={onLogout}
-                      className="header-logout-btn"
-                      title="Cerrar sesión"
-                      aria-label="Cerrar sesión"
-                    >
-                      <LogOut size={15} />
-                    </button>
+                <div className="header-user-menu-wrap" ref={userMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="header-user-trigger"
+                    title={`Perfil de ${currentUser.name}`}
+                    aria-expanded={isUserMenuOpen}
+                  >
+                    <div className="header-user-avatar">
+                      {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                    </div>
+
+                    <div className="header-user-info">
+                      <span className="header-user-name">{currentUser.name}</span>
+                      <span className="header-user-role">{currentUser.roleLabel}</span>
+                    </div>
+
+                    <ChevronDown
+                      size={14}
+                      className={`header-user-chevron ${isUserMenuOpen ? 'rotated' : ''}`}
+                    />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {isUserMenuOpen && (
+                    <div className="header-user-dropdown" role="menu">
+                      {/* Profile Card Header */}
+                      <div className="dropdown-user-header">
+                        <div className="dropdown-user-avatar">
+                          {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                        </div>
+                        <div className="dropdown-user-details">
+                          <p className="dropdown-user-name">{currentUser.name}</p>
+                          <p className="dropdown-user-email">{currentUser.email}</p>
+                        </div>
+                        <div className="dropdown-status-row">
+                          <span className="dropdown-status-active">
+                            <ShieldCheck size={12} />
+                            <span>Sesión activa</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Menu Options */}
+                      <div className="dropdown-menu-list">
+                        {onOpenChangePassword && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              onOpenChangePassword();
+                            }}
+                            className="dropdown-menu-item change-pwd"
+                          >
+                            <Lock size={15} />
+                            <span>Cambiar contraseña</span>
+                          </button>
+                        )}
+
+                        {onLogout && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              onLogout();
+                            }}
+                            className="dropdown-menu-item logout"
+                          >
+                            <LogOut size={15} />
+                            <span>Cerrar Sesión</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -341,19 +428,36 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            {currentUser && onLogout && (
+            {currentUser && (
               <div className="side-menu-footer-actions">
-                <button
-                  type="button"
-                  className="side-menu-logout-btn"
-                  onClick={() => {
-                    handleCloseMenu();
-                    onLogout();
-                  }}
-                >
-                  <LogOut size={16} />
-                  <span>Cerrar Sesión</span>
-                </button>
+                {onOpenChangePassword && (
+                  <button
+                    type="button"
+                    className="side-menu-logout-btn"
+                    style={{ marginBottom: '8px', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}
+                    onClick={() => {
+                      handleCloseMenu();
+                      onOpenChangePassword();
+                    }}
+                  >
+                    <KeyRound size={16} />
+                    <span>Cambiar Contraseña</span>
+                  </button>
+                )}
+
+                {onLogout && (
+                  <button
+                    type="button"
+                    className="side-menu-logout-btn"
+                    onClick={() => {
+                      handleCloseMenu();
+                      onLogout();
+                    }}
+                  >
+                    <LogOut size={16} />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                )}
               </div>
             )}
           </div>

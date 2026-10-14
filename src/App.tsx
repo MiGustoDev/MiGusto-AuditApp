@@ -13,6 +13,7 @@ import { VerdictCard } from './components/VerdictCard';
 import { DeviationsList } from './components/DeviationsList';
 import { ActionToolbar } from './components/ActionToolbar';
 import { HistorySection } from './components/HistorySection';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { PhotoLightbox } from './components/PhotoLightbox';
 import { AuditCharts } from './components/AuditCharts';
 import { UnfinishedAuditModal } from './components/UnfinishedAuditModal';
@@ -30,6 +31,7 @@ export interface ToastState {
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => getStoredSession());
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const [auditMode, setAuditMode] = useState<AuditMode>(() => {
     try {
@@ -277,6 +279,14 @@ export function App() {
         auditStep={auditStep}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+      />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        currentUser={currentUser}
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
 
       <main className="wrap">

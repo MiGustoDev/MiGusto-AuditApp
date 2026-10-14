@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
-import { authenticate, UserProfile } from '../lib/auth';
+import { authenticateAsync, UserProfile } from '../lib/auth';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: UserProfile) => void;
@@ -13,20 +13,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const res = authenticate(email, password);
+    try {
+      const res = await authenticateAsync(email, password);
       setIsLoading(false);
       if (res.success && res.user) {
         onLoginSuccess(res.user);
       } else {
         setErrorMsg(res.error || 'Credenciales incorrectas');
       }
-    }, 300);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMsg('Error al verificar credenciales.');
+    }
   };
 
   return (

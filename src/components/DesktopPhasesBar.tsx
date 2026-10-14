@@ -44,7 +44,7 @@ export const DesktopPhasesBar: React.FC<DesktopPhasesBarProps> = ({
             <span className="phase-name-text">Sucursal</span>
           </div>
           <div className="phase-card-bottom num">
-            <span className="phase-items-count">Inicio</span>
+            <span className="phase-badge-pill phase-pill-setup">Datos</span>
             <span className={`phase-pct-tag ${auditStep === 'setup' ? 'level-zero-active-text' : 'empty'}`}>
               Nivel 0
             </span>
@@ -70,7 +70,7 @@ export const DesktopPhasesBar: React.FC<DesktopPhasesBarProps> = ({
             >
               <div className="phase-card-header">
                 <span className="phase-number-tag">
-                  {isSegComplete ? <Check size={12} className="phase-check-icon" /> : `${si + 1}`}
+                  {isSegComplete ? <Check size={11} className="phase-check-icon" /> : `${si + 1}`}
                 </span>
                 <span className="phase-name-text">{seg.short}</span>
               </div>
