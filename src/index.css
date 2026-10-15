@@ -3649,8 +3649,21 @@ html, body {
   font-weight: 900;
   color: #ffffff;
   font-size: 0.82rem;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.header-user-avatar.has-image {
+  background: #0f172a;
+}
+
+.header-user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .header-user-info {
@@ -3731,8 +3744,21 @@ html, body {
   font-weight: 900;
   color: #ffffff;
   font-size: 0.95rem;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dropdown-user-avatar.has-image {
+  background: #0f172a;
+}
+
+.dropdown-user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .dropdown-user-details {
@@ -4146,7 +4172,8 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    padding-top: clamp(28px, 4.5vh, 56px);
+    padding-bottom: 0;
     margin-bottom: 28px;
     animation: fadeIn 0.25s ease-out;
   }
@@ -6036,6 +6063,19 @@ html, body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.side-menu-user-avatar.has-image {
+  background: #0f172a;
+}
+
+.side-menu-user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .side-menu-user-details {

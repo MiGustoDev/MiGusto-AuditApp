@@ -3,6 +3,7 @@ export interface UserProfile {
   name: string;
   role: 'Supervisor' | 'Admin';
   roleLabel: string;
+  avatarUrl?: string;
 }
 
 export const AUTHORIZED_USERS: {
@@ -11,6 +12,7 @@ export const AUTHORIZED_USERS: {
   role: 'Supervisor' | 'Admin';
   roleLabel: string;
   password: string;
+  avatarUrl: string;
 }[] = [
   // Supervisores
   {
@@ -18,42 +20,48 @@ export const AUTHORIZED_USERS: {
     name: 'Selene Hernández',
     role: 'Supervisor',
     roleLabel: 'Supervisora',
-    password: 'MiGusto123.'
+    password: 'MiGusto123.',
+    avatarUrl: 'users/selene.png'
   },
   {
     email: 'wandaruiz@migusto.com.ar',
     name: 'Wanda Ruiz',
     role: 'Supervisor',
     roleLabel: 'Supervisora',
-    password: 'MiGusto123.'
+    password: 'MiGusto123.',
+    avatarUrl: 'users/wanda.png'
   },
   {
     email: 'martinsastre@migusto.com.ar',
     name: 'Martín Sastre',
     role: 'Supervisor',
     roleLabel: 'Supervisor',
-    password: 'MiGusto123.'
+    password: 'MiGusto123.',
+    avatarUrl: 'users/martin.png'
   },
   {
     email: 'damarisburgos@migusto.com.ar',
     name: 'Damaris Burgos',
     role: 'Supervisor',
     roleLabel: 'Supervisora',
-    password: 'MiGusto123.'
+    password: 'MiGusto123.',
+    avatarUrl: 'users/damaris.png'
   },
   {
     email: 'evelyncedron@migusto.com.ar',
     name: 'Evelyn Cedrón',
     role: 'Supervisor',
     roleLabel: 'Supervisora',
-    password: 'MiGusto123.'
+    password: 'MiGusto123.',
+    avatarUrl: 'users/evelyn.png'
   },
   {
     email: 'sashaalfini@migusto.com.ar',
     name: 'Sasha Alfini',
     role: 'Supervisor',
     roleLabel: 'Supervisora',
-    password: 'MiGusto123.'
+    password: 'MiGusto123.',
+    avatarUrl: 'users/sasha.png'
   },
 
   // Admins
@@ -62,30 +70,60 @@ export const AUTHORIZED_USERS: {
     name: 'Administración Mi Gusto',
     role: 'Admin',
     roleLabel: 'Administrador General',
-    password: '123MiGusto.'
+    password: '123MiGusto.',
+    avatarUrl: 'users/admin.png'
   },
   {
     email: 'mariasalazar@migusto.com.ar',
     name: 'María Salazar',
     role: 'Admin',
     roleLabel: 'Administradora',
-    password: '123MiGusto.'
+    password: '123MiGusto.',
+    avatarUrl: 'users/maria.png'
   },
   {
     email: 'elizabethcolman@migusto.com.ar',
     name: 'Elizabeth Colman',
     role: 'Admin',
     roleLabel: 'Administradora',
-    password: '123MiGusto.'
+    password: '123MiGusto.',
+    avatarUrl: 'users/elizabeth.png'
   },
   {
     email: 'lidyatello@migusto.com.ar',
     name: 'Lidya Tello',
     role: 'Admin',
     roleLabel: 'Administradora',
-    password: '123MiGusto.'
+    password: '123MiGusto.',
+    avatarUrl: 'users/lydia.png'
   }
 ];
+
+export function getUserAvatarUrl(userOrEmail?: UserProfile | string | null): string | undefined {
+  if (!userOrEmail) return undefined;
+  const email = typeof userOrEmail === 'string' ? userOrEmail : userOrEmail.email;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const matched = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === cleanEmail);
+  if (matched?.avatarUrl) return matched.avatarUrl;
+
+  if (typeof userOrEmail !== 'string' && userOrEmail.avatarUrl) {
+    return userOrEmail.avatarUrl;
+  }
+
+  const name = typeof userOrEmail !== 'string' ? (userOrEmail.name || '').toLowerCase() : '';
+  if (name.includes('selene')) return 'users/selene.png';
+  if (name.includes('wanda')) return 'users/wanda.png';
+  if (name.includes('martín') || name.includes('martin')) return 'users/martin.png';
+  if (name.includes('damaris')) return 'users/damaris.png';
+  if (name.includes('evelyn')) return 'users/evelyn.png';
+  if (name.includes('sasha')) return 'users/sasha.png';
+  if (name.includes('administración') || name.includes('administracion') || name.includes('admin')) return 'users/admin.png';
+  if (name.includes('maría') || name.includes('maria')) return 'users/maria.png';
+  if (name.includes('elizabeth')) return 'users/elizabeth.png';
+  if (name.includes('lidya') || name.includes('lydia')) return 'users/lydia.png';
+
+  return undefined;
+}
 
 export function canUserDeleteAudits(user: UserProfile | null): boolean {
   if (!user) return false;
@@ -104,7 +142,12 @@ export function getStoredSession(): UserProfile | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const profile: UserProfile = JSON.parse(raw);
+    if (!profile.avatarUrl) {
+      const avatar = getUserAvatarUrl(profile);
+      if (avatar) profile.avatarUrl = avatar;
+    }
+    return profile;
   } catch (err) {
     return null;
   }
@@ -259,6 +302,7 @@ export async function authenticateAsync(
       name: user.name,
       role: user.role,
       roleLabel: user.roleLabel,
+      avatarUrl: user.avatarUrl,
     };
     saveSession(profile);
     return { success: true, user: profile };
@@ -295,6 +339,7 @@ export function authenticate(
         name: user.name,
         role: user.role,
         roleLabel: user.roleLabel,
+        avatarUrl: user.avatarUrl,
       };
       saveSession(profile);
       return { success: true, user: profile };

@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles, LogOut, User as UserIcon, KeyRound, ChevronDown, ShieldCheck, Lock } from 'lucide-react';
 import { getSegments } from '../data/segments';
 import { AuditSummary } from '../types/audit';
-import { UserProfile } from '../lib/auth';
+import { UserProfile, getUserAvatarUrl } from '../lib/auth';
 
 export type ActiveTab = 'audit' | 'summary' | 'history';
 
@@ -50,6 +50,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  const avatarSrc = currentUser ? (currentUser.avatarUrl || getUserAvatarUrl(currentUser)) : undefined;
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [avatarSrc]);
 
   // Close user dropdown when clicking outside
   useEffect(() => {
@@ -240,8 +247,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     title={`Perfil de ${currentUser.name}`}
                     aria-expanded={isUserMenuOpen}
                   >
-                    <div className="header-user-avatar">
-                      {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                    <div className={`header-user-avatar ${avatarSrc && !avatarFailed ? 'has-image' : ''}`}>
+                      {avatarSrc && !avatarFailed ? (
+                        <img
+                          src={avatarSrc}
+                          alt={currentUser.name}
+                          className="header-user-avatar-img"
+                          onError={() => setAvatarFailed(true)}
+                        />
+                      ) : (
+                        currentUser.name ? currentUser.name.charAt(0) : 'U'
+                      )}
                     </div>
 
                     <div className="header-user-info">
@@ -260,8 +276,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div className="header-user-dropdown" role="menu">
                       {/* Profile Card Header */}
                       <div className="dropdown-user-header">
-                        <div className="dropdown-user-avatar">
-                          {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                        <div className={`dropdown-user-avatar ${avatarSrc && !avatarFailed ? 'has-image' : ''}`}>
+                          {avatarSrc && !avatarFailed ? (
+                            <img
+                              src={avatarSrc}
+                              alt={currentUser.name}
+                              className="dropdown-user-avatar-img"
+                            />
+                          ) : (
+                            currentUser.name ? currentUser.name.charAt(0) : 'U'
+                          )}
                         </div>
                         <div className="dropdown-user-details">
                           <p className="dropdown-user-name">{currentUser.name}</p>
@@ -382,8 +406,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {currentUser && (
               <div className="side-menu-user-card">
-                <div className="side-menu-user-avatar">
-                  <UserIcon size={16} />
+                <div className={`side-menu-user-avatar ${avatarSrc && !avatarFailed ? 'has-image' : ''}`}>
+                  {avatarSrc && !avatarFailed ? (
+                    <img
+                      src={avatarSrc}
+                      alt={currentUser.name}
+                      className="side-menu-user-avatar-img"
+                    />
+                  ) : (
+                    <UserIcon size={16} />
+                  )}
                 </div>
                 <div className="side-menu-user-details">
                   <div className="side-menu-user-name">{currentUser.name}</div>
