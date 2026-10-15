@@ -1,211 +1,73 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { f2, fmtDate } from './formatters';
 import { PASS_SCORE } from '../data/segments';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
-export function generateAuditReportHTML(data: {
+interface ReportData {
   tienda: string;
   auditor: string;
   fecha: string;
   total: number;
-  estado: string;
+  estado?: string;
   desvios?: Array<{ n: string; texto: string; ideal: number; real: number; obs?: string }>;
   segmentos?: Array<{ n: number; nombre: string; ideal: number; real: number }>;
   fotos?: Array<{ n: string; id: string; texto?: string }>;
   personalACargo?: string;
   colaboradores?: string;
   unidades?: string;
-}): string {
-  const isApproved = data.total >= PASS_SCORE;
-  const statusColor = isApproved ? '#059669' : '#dc2626';
-  const statusBg = isApproved ? '#ecfdf5' : '#fef2f2';
-  const statusBorder = isApproved ? '#a7f3d0' : '#fecaca';
-
-  const segmentsList = data.segmentos || [];
-  const desviosList = data.desvios || [];
-  const fotosList = (data.fotos || []).map(p => {
-    let src = p.id;
-    if (!src.startsWith('data:') && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('blob:')) {
-      src = `/_blob/${src}`;
-    }
-    return { ...p, src };
-  });
-
-  return `
-    <div id="pdf-report-render" style="background: #ffffff; color: #0f172a; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; padding: 24px; font-size: 12px; line-height: 1.4; width: 794px; box-sizing: border-box;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0284c7; padding-bottom: 12px; margin-bottom: 16px;">
-        <div>
-          <h1 style="margin: 0; font-size: 20px; color: #0284c7; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">MI GUSTO · Auditoría Operativa</h1>
-          <span style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Informe Ejecutivo de Sucursal</span>
-        </div>
-        <div style="text-align: center; background: ${statusBg}; border: 2px solid ${statusBorder}; padding: 6px 16px; border-radius: 8px; min-width: 140px;">
-          <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Dictamen Operativo</div>
-          <div style="font-size: 15px; font-weight: 900; color: ${statusColor}; margin-top: 1px;">${data.estado || (isApproved ? 'APROBADO' : 'NO APROBADO')}</div>
-        </div>
-      </div>
-
-      <!-- General Info Bar -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: #f8fafc; padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;">
-        <div>
-          <label style="display: block; font-size: 9px; color: #0284c7; text-transform: uppercase; font-weight: 800; margin-bottom: 2px;">SUCURSAL</label>
-          <span style="display: inline-block; font-size: 14px; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 3px 8px; border-radius: 6px; border: 1px solid #bae6fd;">${data.tienda}</span>
-        </div>
-        <div>
-          <label style="display: block; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">AUDITOR / A</label>
-          <span style="display: block; font-size: 12px; font-weight: 700; color: #0f172a;">${data.auditor || '-'}</span>
-        </div>
-        <div>
-          <label style="display: block; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">FECHA</label>
-          <span style="display: block; font-size: 12px; font-weight: 700; color: #0f172a;">${fmtDate(data.fecha)}</span>
-        </div>
-        <div>
-          <label style="display: block; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">PUNTAJE FINAL</label>
-          <span style="display: block; font-size: 14px; font-weight: 900; color: #0284c7;">${f2(data.total)} / 100 pts</span>
-        </div>
-      </div>
-
-      ${data.personalACargo || data.colaboradores || data.unidades ? `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin-top: -6px; margin-bottom: 14px; border: 1px solid #e2e8f0;">
-          <div>
-            <label style="display: block; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700;">PERSONAL A CARGO</label>
-            <span style="font-size: 11px; font-weight: 700; color: #0f172a;">${data.personalACargo || '-'}</span>
-          </div>
-          <div>
-            <label style="display: block; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700;">COLABORADORES</label>
-            <span style="font-size: 11px; font-weight: 700; color: #0f172a;">${data.colaboradores || '-'}</span>
-          </div>
-          <div>
-            <label style="display: block; font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 700;">UNIDADES VENDIDAS</label>
-            <span style="font-size: 11px; font-weight: 700; color: #0f172a;">${data.unidades || '-'}</span>
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Eco-Friendly Light Score Banner -->
-      <div style="display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; border: 2px solid #0284c7; border-radius: 10px; padding: 12px 18px; margin-bottom: 16px;">
-        <div>
-          <div style="font-size: 28px; font-weight: 900; color: #0284c7; line-height: 1;">${f2(data.total)} <span style="font-size: 16px; font-weight: 600; color: #475569;">/ 100 pts</span></div>
-          <div style="font-size: 10.5px; color: #64748b; margin-top: 2px;">Puntaje total obtenido en la evaluación operativa</div>
-        </div>
-        <div style="text-align: right; font-size: 11px; color: #334155;">
-          <div>Estándar mínimo exigido: <b>${PASS_SCORE} pts</b></div>
-          <div style="margin-top: 3px; font-weight: 800; color: ${isApproved ? '#059669' : '#dc2626'};">
-            ${isApproved ? '✓ CUMPLE ESTÁNDAR EXIGIDO' : '⚠️ PLAN DE ACCIÓN REQUERIDO'}
-          </div>
-        </div>
-      </div>
-
-      <div style="font-size: 11.5px; font-weight: 800; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 8px; margin: 14px 0 8px 0; text-transform: uppercase;">
-        Rendimiento por Fase Operativa
-      </div>
-      
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; background: #ffffff; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0;">
-        <thead>
-          <tr style="background: #f1f5f9; color: #475569; font-size: 10px; text-transform: uppercase;">
-            <th style="padding: 6px 10px; text-align: left; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Fase Operativa</th>
-            <th style="padding: 6px 10px; text-align: right; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Ideal</th>
-            <th style="padding: 6px 10px; text-align: right; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Obtenido</th>
-            <th style="padding: 6px 10px; text-align: right; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Rendimiento</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${segmentsList.map(s => {
-            const pctNum = s.ideal ? Math.min(100, Math.round((s.real / s.ideal) * 100)) : 0;
-            const barColor = pctNum >= 85 ? '#10b981' : pctNum >= 60 ? '#f59e0b' : '#ef4444';
-            return `
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 7px 10px; font-size: 11px; color: #0f172a; font-weight: 700;">${s.n}. ${s.nombre}</td>
-                <td style="padding: 7px 10px; text-align: right; font-size: 11px; color: #334155; font-weight: 600;">${f2(s.ideal)}</td>
-                <td style="padding: 7px 10px; text-align: right; font-size: 11px; font-weight: 800; color: #0f172a;">${f2(s.real)}</td>
-                <td style="padding: 7px 10px; text-align: right;">
-                  <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end;">
-                    <div style="width: 65px; height: 7px; background: #cbd5e1; border-radius: 4px; overflow: hidden;">
-                      <div style="width: ${pctNum}%; height: 100%; background: ${barColor}; border-radius: 4px;"></div>
-                    </div>
-                    <span style="font-weight: 800; font-size: 10.5px; width: 32px; text-align: right; color: #0f172a;">${pctNum}%</span>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-
-      <div style="font-size: 11.5px; font-weight: 800; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 8px; margin: 14px 0 8px 0; text-transform: uppercase;">
-        Desvíos Detectados (${desviosList.length})
-      </div>
-      ${desviosList.length > 0 ? desviosList.map(d => `
-        <div style="background: #fff5f5; border: 1px solid #fee2e2; border-left: 4px solid #ef4444; padding: 7px 10px; border-radius: 6px; margin-bottom: 6px;">
-          <div style="font-weight: 700; color: #991b1b; display: flex; justify-content: space-between; font-size: 10.5px;">
-            <span>Ítem ${d.n} — ${d.texto}</span>
-            <span>(${f2(d.real)} / ${f2(d.ideal)} pts)</span>
-          </div>
-          ${d.obs ? `<div style="font-size: 10px; color: #475569; margin-top: 2px; font-style: italic;">Observación: ${d.obs}</div>` : ''}
-        </div>
-      `).join('') : '<p style="color: #059669; font-weight: 700; padding: 4px 0; font-size: 11px;">✓ Sin desvíos registrados en esta auditoría.</p>'}
-
-      <!-- SECTOR APARTE: REGISTRO FOTOGRÁFICO DE EVIDENCIAS EN IMPRESIÓN -->
-      ${fotosList.length > 0 ? `
-        <div style="page-break-before: always; margin-top: 24px; padding-top: 14px; border-top: 2px solid #0284c7;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <div>
-              <div style="font-size: 13px; font-weight: 900; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">
-                REGISTRO FOTOGRÁFICO DE EVIDENCIAS
-              </div>
-              <div style="font-size: 10px; color: #64748b;">
-                Imágenes adjuntas con índice de ítem para inspección visual e impresión
-              </div>
-            </div>
-            <span style="background: #e0f2fe; color: #0369a1; font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #bae6fd;">
-              Total: ${fotosList.length} ${fotosList.length === 1 ? 'fotografía' : 'fotografías'}
-            </span>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-            ${fotosList.map(p => `
-              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; page-break-inside: avoid; display: flex; flex-direction: column;">
-                <div style="background: #0284c7; color: #ffffff; padding: 6px 10px; font-weight: 800; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
-                  <span>ÍTEM EVALUADO ${p.n}</span>
-                  <span style="font-size: 9px; opacity: 0.9; text-transform: uppercase;">Fotografía de evidencia</span>
-                </div>
-                ${p.texto ? `
-                  <div style="padding: 6px 10px; font-size: 10px; font-weight: 600; color: #334155; border-bottom: 1px solid #e2e8f0; background: #ffffff;">
-                    ${p.texto}
-                  </div>
-                ` : ''}
-                <div style="padding: 8px; background: #ffffff; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 220px;">
-                  <img src="${p.src}" alt="Evidencia Ítem ${p.n}" style="max-width: 100%; max-height: 280px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e8f0;" />
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-
-      <div style="text-align: center; margin-top: 18px; padding-top: 10px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 9.5px;">
-        © Departamento de Sistemas de Mi Gusto — Documento oficial generado en PDF
-      </div>
-    </div>
-  `;
 }
 
-export async function downloadAuditPDF(data: {
-  tienda: string;
-  auditor: string;
-  fecha: string;
-  total: number;
-  estado: string;
-  desvios?: Array<{ n: string; texto: string; ideal: number; real: number; obs?: string }>;
-  segmentos?: Array<{ n: number; nombre: string; ideal: number; real: number }>;
-  fotos?: Array<{ n: string; id: string; texto?: string }>;
-  personalACargo?: string;
-  colaboradores?: string;
-  unidades?: string;
-}) {
-  // Clean store name for filename
+let cachedLogoBase64: string | null = null;
+async function getLogoBase64(): Promise<string | null> {
+  if (cachedLogoBase64) return cachedLogoBase64;
+  const logoUrls = ['logo-script.png', 'logo.png', '/logo-script.png', '/logo.png'];
+
+  for (const url of logoUrls) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      if (base64) {
+        cachedLogoBase64 = base64;
+        return base64;
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+async function loadImageBase64(src: string): Promise<string | null> {
+  if (!src) return null;
+  if (src.startsWith('data:image')) return src;
+
+  let finalUrl = src;
+  if (!src.startsWith('data:') && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('blob:')) {
+    finalUrl = `/_blob/${src}`;
+  }
+
+  try {
+    const res = await fetch(finalUrl);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function downloadAuditPDF(data: ReportData) {
   const storeClean = (data.tienda || 'Sucursal').trim().replace(/[^\w-]+/g, '_');
-  
-  // Format date as dia-mes-año (DD-MM-YYYY)
   let formattedDate = '';
   if (data.fecha) {
     const parts = data.fecha.split('-');
@@ -222,55 +84,422 @@ export async function downloadAuditPDF(data: {
     formattedDate = `${dd}-${mm}-${yyyy}`;
   }
 
-  // Filename: Auditoria_(sucursal)_(fecha dia-mes-año).pdf
   const filename = `Auditoria_${storeClean}_${formattedDate}.pdf`;
 
-  const htmlString = generateAuditReportHTML(data);
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.innerHTML = htmlString;
-  document.body.appendChild(container);
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth(); // 210 mm
+  const pageHeight = pdf.internal.pageSize.getHeight(); // 297 mm
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2; // 182 mm
 
-  const targetEl = container.querySelector('#pdf-report-render') as HTMLElement || container;
+  const logoBase64 = await getLogoBase64();
 
-  try {
-    const canvas = await html2canvas(targetEl, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff'
-    });
+  // Helper to draw clean executive header
+  const drawHeader = (doc: jsPDF) => {
+    // Header divider line at top
+    doc.setDrawColor(2, 132, 199); // #0284c7 Mi Gusto Blue
+    doc.setLineWidth(1);
+    doc.line(margin, 22, pageWidth - margin, 22);
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfPageWidth = pdf.internal.pageSize.getWidth();
-    const pdfPageHeight = pdf.internal.pageSize.getHeight();
-
-    const imgWidth = pdfPageWidth;
-    const imgHeight = (canvas.height * pdfPageWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    // Add first page
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfPageHeight;
-
-    // Add remaining pages if rendered HTML exceeds a single A4 page
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfPageHeight;
+    if (logoBase64) {
+      try {
+        doc.addImage(logoBase64, 'PNG', margin, 7, 28, 11);
+      } catch (e) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(2, 132, 199);
+        doc.text('MI GUSTO', margin, 16);
+      }
+    } else {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(2, 132, 199);
+      doc.text('MI GUSTO', margin, 16);
     }
 
-    pdf.save(filename);
-  } catch (err) {
-    console.error('Error generating PDF with jsPDF/html2canvas:', err);
-  } finally {
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    // Title on the right
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text('INFORME OFICIAL DE AUDITORÍA', pageWidth - margin, 13, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text('Departamento de Calidad y Procesos', pageWidth - margin, 18.5, { align: 'right' });
+  };
+
+  // Helper to draw clean page footer
+  const drawFooter = (doc: jsPDF, pageNum: number, totalPages: number) => {
+    const y = pageHeight - 11;
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.setLineWidth(0.4);
+    doc.line(margin, y - 4, pageWidth - margin, y - 4);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text('Mi Gusto · Sistema de Gestión de Calidad Operativa', margin, y);
+    doc.text(`Página ${pageNum} de ${totalPages}`, pageWidth - margin, y, { align: 'right' });
+  };
+
+  // Safe vertical bounds:
+  // Top: header line is at 22, content starts at 30 mm
+  // Bottom: footer line is at pageHeight - 15 mm, content must stop by pageHeight - 24 mm
+  const CONTENT_START_Y = 30;
+  const MAX_CONTENT_Y = pageHeight - 24;
+
+  // --- DRAW PAGE 1 HEADER ---
+  drawHeader(pdf);
+  let currentY = CONTENT_START_Y;
+
+  const isApproved = data.total >= PASS_SCORE;
+
+  // --- TOP HIGHLIGHT CARD (Store, Score, Dictamen) ---
+  pdf.setFillColor(248, 250, 252); // slate-50
+  pdf.setDrawColor(226, 232, 240); // slate-200
+  pdf.setLineWidth(0.4);
+  pdf.roundedRect(margin, currentY, contentWidth, 24, 3, 3, 'FD');
+
+  // Store Name
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(2, 132, 199);
+  pdf.text('SUCURSAL EVALUADA', margin + 6, currentY + 7);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(12.5);
+  pdf.setTextColor(3, 105, 161);
+  pdf.text(data.tienda || '-', margin + 6, currentY + 15);
+
+  // Auditor & Date
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text('AUDITOR / A', margin + 62, currentY + 7);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(data.auditor || '-', margin + 62, currentY + 14);
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text('FECHA', margin + 104, currentY + 7);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(15, 23, 42);
+  pdf.text(fmtDate(data.fecha) || formattedDate, margin + 104, currentY + 14);
+
+  // Score & Status Box
+  const statusBgColor: [number, number, number] = isApproved ? [236, 253, 245] : [254, 242, 242];
+  const statusBorderColor: [number, number, number] = isApproved ? [167, 243, 208] : [254, 202, 202];
+  const statusTextColor: [number, number, number] = isApproved ? [5, 150, 105] : [220, 38, 38];
+
+  pdf.setFillColor(statusBgColor[0], statusBgColor[1], statusBgColor[2]);
+  pdf.setDrawColor(statusBorderColor[0], statusBorderColor[1], statusBorderColor[2]);
+  pdf.setLineWidth(0.5);
+  pdf.roundedRect(pageWidth - margin - 44, currentY + 3, 40, 18, 2.5, 2.5, 'FD');
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(11);
+  pdf.setTextColor(2, 132, 199);
+  pdf.text(`${f2(data.total)} pts`, pageWidth - margin - 24, currentY + 9, { align: 'center' });
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(statusTextColor[0], statusTextColor[1], statusTextColor[2]);
+  pdf.text(data.estado || (isApproved ? 'APROBADO' : 'NO APROBADO'), pageWidth - margin - 24, currentY + 16, { align: 'center' });
+
+  currentY += 28;
+
+  // --- SECONDARY INFO ROW (Personal, Colaboradores, Unidades) ---
+  if (data.personalACargo || data.colaboradores || data.unidades) {
+    pdf.setFillColor(248, 250, 252);
+    pdf.setDrawColor(226, 232, 240);
+    pdf.roundedRect(margin, currentY, contentWidth, 14, 2, 2, 'FD');
+
+    const colW = contentWidth / 3;
+    // Personal a cargo
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('PERSONAL A CARGO', margin + 6, currentY + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(data.personalACargo || '-', margin + 6, currentY + 10.5);
+
+    // Colaboradores
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('COLABORADORES', margin + colW + 6, currentY + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(data.colaboradores || '-', margin + colW + 6, currentY + 10.5);
+
+    // Unidades
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('UNIDADES VENDIDAS', margin + colW * 2 + 6, currentY + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(data.unidades || '-', margin + colW * 2 + 6, currentY + 10.5);
+
+    currentY += 18;
+  }
+
+  // --- SECTION: TABLA DE RENDIMIENTO POR FASE ---
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9.5);
+  pdf.setTextColor(2, 132, 199);
+  pdf.text('RENDIMIENTO POR FASE OPERATIVA', margin, currentY);
+  currentY += 2;
+
+  const segmentsList = data.segmentos || [];
+  const tableRows = segmentsList.map(s => {
+    const pct = s.ideal ? Math.min(100, Math.round((s.real / s.ideal) * 100)) : 0;
+    return [
+      `${s.n}. ${s.nombre}`,
+      `${f2(s.ideal)} pts`,
+      `${f2(s.real)} pts`,
+      `${pct}%`
+    ];
+  });
+
+  autoTable(pdf, {
+    startY: currentY,
+    head: [['Fase Operativa', 'Puntaje Ideal', 'Puntaje Obtenido', 'Rendimiento']],
+    body: tableRows,
+    theme: 'plain',
+    margin: { left: margin, right: margin, bottom: 16 },
+    headStyles: {
+      fillColor: [241, 245, 249],
+      textColor: [51, 65, 85],
+      fontStyle: 'bold',
+      fontSize: 8,
+      cellPadding: 2.5
+    },
+    bodyStyles: {
+      textColor: [15, 23, 42],
+      fontSize: 7.5,
+      cellPadding: 2,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.2
+    },
+    columnStyles: {
+      0: { cellWidth: 'auto', fontStyle: 'bold' },
+      1: { cellWidth: 28, halign: 'right' },
+      2: { cellWidth: 32, halign: 'right', fontStyle: 'bold' },
+      3: { cellWidth: 26, halign: 'right', fontStyle: 'bold' }
+    },
+    didDrawCell: (dataCell) => {
+      // Colorize the percentage text in last column
+      if (dataCell.section === 'body' && dataCell.column.index === 3) {
+        const rawText = String(dataCell.cell.raw || '');
+        const val = parseInt(rawText, 10);
+        if (!isNaN(val)) {
+          if (val >= 85) dataCell.cell.styles.textColor = [16, 185, 129];
+          else if (val >= 60) dataCell.cell.styles.textColor = [245, 158, 11];
+          else dataCell.cell.styles.textColor = [239, 68, 68];
+        }
+      }
+    }
+  });
+
+  // Update currentY after table
+  const finalTable = (pdf as any).lastAutoTable;
+  currentY = finalTable ? finalTable.finalY + 8 : currentY + 40;
+
+  // --- SECTION: DESVÍOS DETECTADOS ---
+  const desviosList = data.desvios || [];
+
+  // Check if we need a new page for title
+  if (currentY > MAX_CONTENT_Y - 20) {
+    pdf.addPage();
+    drawHeader(pdf);
+    currentY = CONTENT_START_Y;
+  }
+
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9.5);
+  pdf.setTextColor(2, 132, 199);
+  pdf.text(`DESVÍOS DETECTADOS (${desviosList.length})`, margin, currentY);
+  currentY += 4;
+
+  if (desviosList.length === 0) {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(5, 150, 105);
+    pdf.text('✓ No se registraron desvíos en esta auditoría.', margin, currentY + 3);
+    currentY += 12;
+  } else {
+    // Render each deviation card safely using page-break aware coordinates
+    for (const d of desviosList) {
+      // Calculate required height for this deviation card with safety padding
+      const titleLines = pdf.splitTextToSize(`Ítem ${d.n} — ${d.texto}`, contentWidth - 36);
+      const obsLines = d.obs ? pdf.splitTextToSize(`Observación: ${d.obs}`, contentWidth - 14) : [];
+      
+      const cardHeight = 8 + (titleLines.length * 3.8) + (obsLines.length ? obsLines.length * 3.4 + 2 : 0);
+
+      // Page break check: if card won't fit entirely above the bottom footer margin, move to next page!
+      if (currentY + cardHeight > MAX_CONTENT_Y) {
+        pdf.addPage();
+        drawHeader(pdf);
+        currentY = CONTENT_START_Y;
+      }
+
+      // Draw background card
+      pdf.setFillColor(255, 245, 245); // light rose #fff5f5
+      pdf.setDrawColor(254, 226, 226); // border #fee2e2
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(margin, currentY, contentWidth, cardHeight, 1.5, 1.5, 'FD');
+
+      // Red left indicator line
+      pdf.setFillColor(239, 68, 68); // #ef4444
+      pdf.rect(margin, currentY, 2, cardHeight, 'F');
+
+      // Title & Points
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(153, 27, 27); // #991b1b
+      pdf.text(titleLines, margin + 6, currentY + 4.5);
+
+      pdf.text(`(${f2(d.real)} / ${f2(d.ideal)} pts)`, pageWidth - margin - 4, currentY + 4.5, { align: 'right' });
+
+      // Observation text
+      if (obsLines.length) {
+        pdf.setFont('helvetica', 'italic');
+        pdf.setFontSize(7);
+        pdf.setTextColor(71, 85, 105); // slate-600
+        pdf.text(obsLines, margin + 6, currentY + 4.5 + (titleLines.length * 3.8) + 1);
+      }
+
+      currentY += cardHeight + 3.5;
     }
   }
+
+  // --- SECTION: REGISTRO FOTOGRÁFICO DE EVIDENCIAS ---
+  const fotosList = data.fotos || [];
+  if (fotosList.length > 0) {
+    // Photographs always start on a clean fresh page
+    pdf.addPage();
+    drawHeader(pdf);
+    currentY = CONTENT_START_Y;
+
+    // Header for evidence photos
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(2, 132, 199);
+    pdf.text('REGISTRO FOTOGRÁFICO DE EVIDENCIAS', margin, currentY);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`Total: ${fotosList.length} fotografía${fotosList.length === 1 ? '' : 's'} adjunta${fotosList.length === 1 ? '' : 's'} a la inspección`, pageWidth - margin, currentY, { align: 'right' });
+    currentY += 6;
+
+    // Grid layout: 2 columns per row
+    // Each photo card has: header (8mm) + description (8mm) + photo (60mm) = ~76mm
+    const cardW = (contentWidth - 6) / 2; // ~88 mm
+    const cardH = 76; // mm
+
+    for (let i = 0; i < fotosList.length; i += 2) {
+      // Check if this pair fits before the safe bottom limit
+      if (currentY + cardH > MAX_CONTENT_Y) {
+        pdf.addPage();
+        drawHeader(pdf);
+        currentY = CONTENT_START_Y;
+      }
+
+      const pair = [fotosList[i], fotosList[i + 1]].filter(Boolean);
+
+      for (let c = 0; c < pair.length; c++) {
+        const item = pair[c];
+        const cardX = margin + c * (cardW + 6);
+        const cardY = currentY;
+
+        // Card frame
+        pdf.setFillColor(248, 250, 252);
+        pdf.setDrawColor(203, 213, 225);
+        pdf.setLineWidth(0.3);
+        pdf.roundedRect(cardX, cardY, cardW, cardH, 2, 2, 'FD');
+
+        // Card header banner
+        pdf.setFillColor(2, 132, 199);
+        pdf.roundedRect(cardX, cardY, cardW, 6.5, 2, 2, 'F');
+        // Square bottom corners of banner
+        pdf.rect(cardX, cardY + 3.5, cardW, 3, 'F');
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7);
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(`ÍTEM EVALUADO ${item.n}`, cardX + 3.5, cardY + 4.5);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(6);
+        pdf.text('EVIDENCIA', cardX + cardW - 3.5, cardY + 4.5, { align: 'right' });
+
+        // Item Description (if any)
+        let descOffset = 7;
+        if (item.texto) {
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(cardX, cardY + 6.5, cardW, 7, 'F');
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(6.2);
+          pdf.setTextColor(51, 65, 85);
+          const descLines = pdf.splitTextToSize(item.texto, cardW - 6);
+          pdf.text(descLines.slice(0, 2), cardX + 3, cardY + 10.5);
+          descOffset = 14;
+        }
+
+        // Image container area
+        const imgBoxX = cardX + 2;
+        const imgBoxY = cardY + descOffset + 1;
+        const imgBoxW = cardW - 4;
+        const imgBoxH = cardH - descOffset - 3;
+
+        pdf.setFillColor(255, 255, 255);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.rect(imgBoxX, imgBoxY, imgBoxW, imgBoxH, 'FD');
+
+        // Load & draw image
+        const imgBase64 = await loadImageBase64(item.id);
+        if (imgBase64) {
+          try {
+            // Keep aspect ratio
+            pdf.addImage(imgBase64, 'JPEG', imgBoxX + 1, imgBoxY + 1, imgBoxW - 2, imgBoxH - 2, undefined, 'FAST');
+          } catch (e) {
+            pdf.setFont('helvetica', 'italic');
+            pdf.setFontSize(7);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text('Imagen no disponible', cardX + cardW / 2, imgBoxY + imgBoxH / 2, { align: 'center' });
+          }
+        } else {
+          pdf.setFont('helvetica', 'italic');
+          pdf.setFontSize(7);
+          pdf.setTextColor(148, 163, 184);
+          pdf.text('Imagen no disponible', cardX + cardW / 2, imgBoxY + imgBoxH / 2, { align: 'center' });
+        }
+      }
+
+      currentY += cardH + 5;
+    }
+  }
+
+  // --- ADD FOOTERS & PAGE NUMBERS ON ALL PAGES ---
+  const totalPages = (pdf as any).internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    pdf.setPage(p);
+    drawFooter(pdf, p, totalPages);
+  }
+
+  // Save PDF
+  pdf.save(filename);
 }
+
+// Backwards compatibility export
+export const generateAuditReportHTML = () => '';
