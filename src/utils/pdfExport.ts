@@ -19,21 +19,66 @@ interface ReportData {
 }
 
 let cachedLogoBase64: string | null = null;
+
+async function convertImageToBlack(blob: Blob): Promise<string> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(blob);
+      return;
+    }
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width || 800;
+        canvas.height = img.naturalHeight || img.height || 400;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+        // Replace all non-transparent pixels with black
+        ctx.globalCompositeOperation = 'source-in';
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        resolve(canvas.toDataURL('image/png'));
+      } catch (err) {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    };
+    img.src = objectUrl;
+  });
+}
+
 async function getLogoBase64(): Promise<string | null> {
   if (cachedLogoBase64) return cachedLogoBase64;
-  const logoUrls = ['logo-script.png', 'logo.png', '/logo-script.png', '/logo.png'];
+  const logoUrls = ['logo-black.png', '/logo-black.png', 'logo-script.png', '/logo-script.png', 'logo.png', '/logo.png'];
 
   for (const url of logoUrls) {
     try {
       const res = await fetch(url);
       if (!res.ok) continue;
       const blob = await res.blob();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      const base64 = await convertImageToBlack(blob);
       if (base64) {
         cachedLogoBase64 = base64;
         return base64;
@@ -104,17 +149,17 @@ export async function downloadAuditPDF(data: ReportData) {
 
     if (logoBase64) {
       try {
-        doc.addImage(logoBase64, 'PNG', margin, 7, 28, 11);
+        doc.addImage(logoBase64, 'PNG', margin, 6, 30, 14.5);
       } catch (e) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
-        doc.setTextColor(2, 132, 199);
+        doc.setTextColor(15, 23, 42);
         doc.text('MI GUSTO', margin, 16);
       }
     } else {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
-      doc.setTextColor(2, 132, 199);
+      doc.setTextColor(15, 23, 42);
       doc.text('MI GUSTO', margin, 16);
     }
 
