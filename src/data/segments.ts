@@ -86,7 +86,7 @@ export const SEGMENTS: SegmentDef[] = [
     name: 'Gestión operativa y KPIs',
     short: 'KPIs',
     items: [
-      { points: 1.5, text: 'Vendor Late del período dentro del objetivo: ≤ 8%.' },
+      { points: 1.5, text: 'AWT del período dentro del objetivo: ≤ 8%.' },
       { points: 1.5, text: 'Inaccuracy del período dentro del objetivo: ≤ 2%.' },
       { points: 2, text: 'Reclamos acumulados del mes anterior no superan el 2% del total de la venta.' }
     ]
@@ -207,7 +207,7 @@ export const EXPERIENCE_SEGMENTS: SegmentDef[] = [
     name: 'Gestión operativa y KPIs',
     short: 'KPIs',
     items: [
-      { points: 1.5, text: 'Vendor Late del período dentro del objetivo: ≤ 8%.' },
+      { points: 1.5, text: 'AWT del período dentro del objetivo: ≤ 8%.' },
       { points: 1.5, text: 'Inaccuracy del período dentro del objetivo: ≤ 2%.' },
       { points: 2, text: 'Reclamos acumulados del mes anterior no superan el 2% del total de la venta.' }
     ]
