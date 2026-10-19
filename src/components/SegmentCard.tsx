@@ -4,7 +4,7 @@ import { ItemAnswer, ItemStatus, SegmentCalculation } from '../types/audit';
 import { f2 } from '../utils/formatters';
 import { PASS_SCORE, SEGMENTS } from '../data/segments';
 import { SegmentItem } from './SegmentItem';
-import { ChevronRight, ChevronLeft, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight, ChevronDown, ChevronUp, AlertTriangle, Lock } from 'lucide-react';
 
 interface SegmentCardProps {
   segmentData: SegmentCalculation;
@@ -13,6 +13,9 @@ interface SegmentCardProps {
   totalSegments?: number;
   isOpen?: boolean;
   isFocused?: boolean;
+  isAuditComplete?: boolean;
+  pendingTotalCount?: number;
+  onGoToFirstPending?: () => void;
   onToggle?: () => void;
   onChoice: (segmentIndex: number, itemIndex: number, status: ItemStatus) => void;
   onPartialScore: (segmentIndex: number, itemIndex: number, value: number) => void;
@@ -36,6 +39,9 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
   totalSegments,
   isOpen = true,
   isFocused = false,
+  isAuditComplete = false,
+  pendingTotalCount = 0,
+  onGoToFirstPending,
   onToggle,
   onChoice,
   onPartialScore,
@@ -149,6 +155,34 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
             })}
           </div>
 
+          {/* If on last segment and audit is incomplete, show clear alert */}
+          {isFocused && isLastSegment && !isAuditComplete && (
+            <div className="submit-audit-locked-banner">
+              <div className="locked-banner-icon">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="locked-banner-text">
+                <strong>Auditoría incompleta</strong>
+                <p>
+                  {pendingTotalCount === 1
+                    ? 'Falta responder 1 ítem para habilitar el botón de envío.'
+                    : `Faltan responder ${pendingTotalCount} ítems en total para habilitar el botón de envío.`}
+                </p>
+              </div>
+              {onGoToFirstPending && (
+                <button
+                  type="button"
+                  className="btn-locked-banner-action"
+                  onClick={onGoToFirstPending}
+                  title="Ir al primer ítem pendiente"
+                >
+                  <span>Ir al ítem pendiente</span>
+                  <ArrowRight size={14} />
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Focus mode navigation footer */}
           {isFocused && (
             <div className="segment-focus-footer">
@@ -177,11 +211,17 @@ export const SegmentCard: React.FC<SegmentCardProps> = ({
               ) : (
                 <button
                   type="button"
-                  className="btn btn-success btn-submit-audit"
-                  onClick={onJumpToSummary}
+                  className={`btn btn-success btn-submit-audit ${!isAuditComplete ? 'is-disabled' : ''}`}
+                  disabled={!isAuditComplete}
+                  onClick={isAuditComplete ? onJumpToSummary : undefined}
+                  title={
+                    isAuditComplete
+                      ? 'Enviar evaluación y finalizar auditoría'
+                      : `Faltan ${pendingTotalCount} ítem${pendingTotalCount === 1 ? '' : 's'} por evaluar para poder enviar la evaluación`
+                  }
                 >
                   <span>Enviar Evaluación</span>
-                  <ArrowRight size={18} />
+                  {isAuditComplete ? <ArrowRight size={18} /> : <Lock size={16} />}
                 </button>
               )}
             </div>

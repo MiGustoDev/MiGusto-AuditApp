@@ -55,6 +55,9 @@ export function App() {
     resetAudit
   } = useAuditState(auditMode);
 
+  const activeSegments = getSegments(auditMode);
+  const totalItemsCount = getTotalItems(auditMode);
+
   // Auto-fill auditor field with logged-in user name if not filled
   useEffect(() => {
     if (currentUser && !state.fields.f_auditor) {
@@ -148,6 +151,15 @@ export function App() {
 
   // Trigger 3-second evaluation spinner transition, auto-save to history, and prepare clean slate
   const handleJumpToSummaryWithLoading = async () => {
+    if (!summary.isComplete) {
+      const pendingTotal = totalItemsCount - summary.done;
+      flashMessage(
+        `No podés finalizar la auditoría: faltan responder ${pendingTotal} ítem${pendingTotal === 1 ? '' : 's'}.`,
+        true
+      );
+      return;
+    }
+
     setIsEvaluating(true);
     
     // Build and save record automatically to history
@@ -238,6 +250,40 @@ export function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Locate first segment & item with pending question
+  const getFirstPendingInfo = () => {
+    for (let si = 0; si < activeSegments.length; si++) {
+      const seg = activeSegments[si];
+      for (let ii = 0; ii < seg.items.length; ii++) {
+        const key = `${si}-${ii}`;
+        if (!state.answers[key]) {
+          return { segmentIndex: si, itemIndex: ii, segmentName: seg.name };
+        }
+      }
+    }
+    return null;
+  };
+
+  const handleGoToFirstPending = () => {
+    const pending = getFirstPendingInfo();
+    if (!pending) return;
+
+    if (currentSegment !== pending.segmentIndex) {
+      handleSelectSegment(pending.segmentIndex);
+    }
+
+    setTimeout(() => {
+      const el = document.getElementById(`item-${pending.segmentIndex}-${pending.itemIndex}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlight-pending-pulse');
+        setTimeout(() => el.classList.remove('highlight-pending-pulse'), 2500);
+      }
+    }, currentSegment !== pending.segmentIndex ? 300 : 50);
+
+    flashMessage(`Ítem pendiente en Fase ${pending.segmentIndex + 1}: ${pending.segmentName}`, true);
+  };
+
   const handleCopyText = async (txt: string) => {
     // Si ya viene formateado como un mensaje de confirmación
     if (txt.startsWith('¡') || txt.includes('copiado')) {
@@ -252,9 +298,6 @@ export function App() {
       flashMessage('No se pudo copiar automáticamente', true);
     }
   };
-
-  const activeSegments = getSegments(auditMode);
-  const totalItemsCount = getTotalItems(auditMode);
 
   if (!currentUser) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
@@ -353,6 +396,9 @@ export function App() {
                     totalSegments={activeSegments.length}
                     isOpen={true}
                     isFocused={true}
+                    isAuditComplete={summary.isComplete}
+                    pendingTotalCount={totalItemsCount - summary.done}
+                    onGoToFirstPending={handleGoToFirstPending}
                     onChoice={setChoice}
                     onPartialScore={setPartialScore}
                     onAdjustPartialScore={adjustPartialScore}

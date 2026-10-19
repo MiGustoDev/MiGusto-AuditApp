@@ -8,7 +8,8 @@ import {
   AlertTriangle, 
   XCircle,
   Check,
-  FileText
+  FileText,
+  Lock
 } from 'lucide-react';
 
 interface ScoreBoardProps {
@@ -137,8 +138,8 @@ export const ScoreBoard: React.FC<ScoreBoardProps> = ({
             onClick={onJumpToSummary}
             title={isComplete ? 'Enviar evaluación y generar informe completo' : `Faltan ${totalItemsCount - summary.done} ítems para enviar la evaluación`}
           >
-            <FileText size={16} />
-            <span>{isComplete ? 'Enviar Evaluación' : 'Ver informe'}</span>
+            {isComplete ? <FileText size={16} /> : <Lock size={15} />}
+            <span>Enviar Evaluación</span>
           </button>
         </div>
       </div>
