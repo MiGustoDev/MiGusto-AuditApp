@@ -56,7 +56,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   const itemNumber = `${itemIndex + 1}.`;
   const isSelected = !!answer;
   const currentStatus = answer?.s;
-  const showExtra = (answer && answer.s !== 'ok') || Boolean(answer && answer.o);
+  const showExtra = Boolean(answer);
   const isPartial = currentStatus === 'partial';
   const isCritical = Boolean(itemDef.isCritical) || itemDef.points >= 3.5;
 
@@ -321,7 +321,11 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
           <div className="observation-input-box">
             <textarea
               ref={obsTextareaRef}
-              placeholder="Describí el motivo del desvío u observación..."
+              placeholder={
+                currentStatus === 'ok'
+                  ? 'Comentarios adicionales u observación (opcional)...'
+                  : 'Describí el motivo del desvío u observación...'
+              }
               aria-label={`Observación del ítem ${itemNumber}`}
               value={answer?.o || ''}
               onChange={handleObsChange}

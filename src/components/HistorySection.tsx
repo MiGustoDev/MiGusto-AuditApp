@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { SavedAuditRecord } from '../types/audit';
 import { f2, fmtDate, generateRecordSummaryText, generateRecordSummaryHtml } from '../utils/formatters';
-import { TOTAL_ITEMS, PASS_SCORE } from '../data/segments';
+import { TOTAL_ITEMS, PASS_SCORE, getSegments } from '../data/segments';
 import { downloadAuditPDF } from '../utils/pdfExport';
 import { AuditCharts } from './AuditCharts';
 import { 
@@ -618,6 +618,49 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                       )}
                     </div>
 
+                    {/* Comentarios adicionales en ítems conformes */}
+                    {(() => {
+                      const compliantComments = Object.entries(r.respuestas || {})
+                        .filter(([_, ans]) => ans && ans.s === 'ok' && ans.o && ans.o.trim())
+                        .map(([k, ans]) => {
+                          const [sStr, iStr] = k.split('-');
+                          const si = parseInt(sStr, 10);
+                          const ii = parseInt(iStr, 10);
+                          const segs = getSegments(r.auditMode || 'normal');
+                          const itemText = segs[si]?.items[ii]?.text || '';
+                          return {
+                            n: `${si + 1}.${ii + 1}`,
+                            texto: itemText,
+                            obs: ans.o?.trim() || ''
+                          };
+                        });
+
+                      if (compliantComments.length === 0) return null;
+
+                      return (
+                        <div className="hist-deviations-block" style={{ marginTop: '16px' }}>
+                          <h4 className="hist-subhead" style={{ color: '#0284c7' }}>
+                            Comentarios adicionales en ítems conformes ({compliantComments.length})
+                          </h4>
+                          <div className="hist-devs-list">
+                            {compliantComments.map(c => (
+                              <div key={c.n} className="hist-dev-item" style={{ borderLeftColor: '#0284c7' }}>
+                                <span className="dev-n-tag" style={{ background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7' }}>
+                                  {c.n}
+                                </span>
+                                <div className="dev-text-group">
+                                  {c.texto && <p className="dev-main-desc" style={{ color: 'var(--fg-muted)' }}>{c.texto}</p>}
+                                  <p className="dev-obs-text" style={{ color: 'var(--fg)', marginTop: '3px' }}>
+                                    <b>Nota:</b> {c.obs}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* Photos */}
                     {r.fotos && r.fotos.length > 0 && (
                       <div className="hist-photos-block">
@@ -686,7 +729,8 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                             fotos: r.fotos,
                             personalACargo: r.personalACargo,
                             colaboradores: r.colaboradores,
-                            unidades: r.unidades
+                            unidades: r.unidades,
+                            respuestas: r.respuestas
                           });
                         }}
                       >

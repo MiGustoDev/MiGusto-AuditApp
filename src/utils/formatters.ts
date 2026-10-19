@@ -197,6 +197,31 @@ export const generateSummaryText = (
     lines.push('✓ Sin desvíos registrados en esta auditoría.');
   }
 
+  // Observaciones y comentarios en ítems que cumplen
+  const compliantNotes: Array<{ n: string; t: string; obs: string }> = [];
+  summary.rows.forEach(r => {
+    r.seg.items.forEach((it, ii) => {
+      const k = `${r.si}-${ii}`;
+      const a = state.answers[k];
+      if (a && a.s === 'ok' && a.o && a.o.trim()) {
+        compliantNotes.push({
+          n: `${r.si + 1}.${ii + 1}`,
+          t: it.text,
+          obs: a.o.trim()
+        });
+      }
+    });
+  });
+
+  if (compliantNotes.length > 0) {
+    lines.push('');
+    lines.push(`COMENTARIOS Y OBSERVACIONES ADICIONALES (${compliantNotes.length}):`);
+    compliantNotes.forEach(c => {
+      lines.push(`• Ítem ${c.n} — ${c.t}`);
+      lines.push(`   Comentario: ${c.obs}`);
+    });
+  }
+
   lines.push('');
   lines.push('==================================================');
   lines.push('— Documento generado automáticamente desde la App de Auditorias de Mi Gusto —');
@@ -237,6 +262,31 @@ export const generateRecordSummaryText = (r: SavedAuditRecord): string => {
     });
   } else {
     lines.push('✓ Sin desvíos registrados en esta auditoría.');
+  }
+
+  // Comentarios adicionales en respuestas de ítems que cumplen
+  const compliantNotes: Array<{ n: string; obs: string }> = [];
+  if (r.respuestas) {
+    Object.entries(r.respuestas).forEach(([k, a]) => {
+      if (a && a.s === 'ok' && a.o && a.o.trim()) {
+        const [sStr, iStr] = k.split('-');
+        const si = parseInt(sStr, 10);
+        const ii = parseInt(iStr, 10);
+        compliantNotes.push({
+          n: `${si + 1}.${ii + 1}`,
+          obs: a.o.trim()
+        });
+      }
+    });
+  }
+
+  if (compliantNotes.length > 0) {
+    lines.push('');
+    lines.push(`COMENTARIOS Y OBSERVACIONES ADICIONALES (${compliantNotes.length}):`);
+    compliantNotes.forEach(c => {
+      lines.push(`• Ítem ${c.n}`);
+      lines.push(`   Comentario: ${c.obs}`);
+    });
   }
 
   lines.push('');
@@ -408,6 +458,39 @@ export const generateRecordSummaryHtml = (r: SavedAuditRecord): string => {
           ✓ Sin desvíos registrados en esta auditoría. ¡Excelente gestión operativa!
         </div>
       `}
+
+      ${(() => {
+        const compliantNotes: Array<{ n: string; obs: string }> = [];
+        if (r.respuestas) {
+          Object.entries(r.respuestas).forEach(([k, a]) => {
+            if (a && a.s === 'ok' && a.o && a.o.trim()) {
+              const [sStr, iStr] = k.split('-');
+              const si = parseInt(sStr, 10);
+              const ii = parseInt(iStr, 10);
+              compliantNotes.push({
+                n: `${si + 1}.${ii + 1}`,
+                obs: a.o.trim()
+              });
+            }
+          });
+        }
+        if (compliantNotes.length === 0) return '';
+        return `
+        <div style="margin-top: 18px;">
+          <h3 style="font-size: 13px; font-weight: 800; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
+            Comentarios y observaciones adicionales (${compliantNotes.length})
+          </h3>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${compliantNotes.map(c => `
+            <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0284c7; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;">
+              <div style="font-size: 12px; font-weight: 700; color: #0369a1;">• Ítem ${c.n}</div>
+              <div style="font-size: 11px; color: #334155; font-style: italic; padding-top: 4px;">Comentario: ${c.obs}</div>
+            </div>
+            `).join('')}
+          </div>
+        </div>
+        `;
+      })()}
     </div>
   </div>
 

@@ -15,6 +15,7 @@ interface ReportData {
   personalACargo?: string;
   colaboradores?: string;
   unidades?: string;
+  respuestas?: Record<string, { s: string; v?: number; o?: string }>;
 }
 
 let cachedLogoBase64: string | null = null;
@@ -380,6 +381,64 @@ export async function downloadAuditPDF(data: ReportData) {
       }
 
       currentY += cardHeight + 3.5;
+    }
+  }
+
+  // --- SECTION: COMENTARIOS Y OBSERVACIONES ADICIONALES (ÍTEMS CONFORMES) ---
+  const compliantComments: Array<{ n: string; obs: string }> = [];
+  if (data.respuestas) {
+    Object.entries(data.respuestas).forEach(([k, a]) => {
+      if (a && a.s === 'ok' && a.o && a.o.trim()) {
+        const [sStr, iStr] = k.split('-');
+        const si = parseInt(sStr, 10);
+        const ii = parseInt(iStr, 10);
+        compliantComments.push({
+          n: `${si + 1}.${ii + 1}`,
+          obs: a.o.trim()
+        });
+      }
+    });
+  }
+
+  if (compliantComments.length > 0) {
+    if (currentY > MAX_CONTENT_Y - 25) {
+      pdf.addPage();
+      drawHeader(pdf);
+      currentY = CONTENT_START_Y;
+    }
+
+    currentY += 4;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(2, 132, 199);
+    pdf.text(`COMENTARIOS Y OBSERVACIONES ADICIONALES (${compliantComments.length})`, margin, currentY);
+    currentY += 6;
+
+    for (const c of compliantComments) {
+      const obsLines = pdf.splitTextToSize(`Ítem ${c.n} — Comentario: ${c.obs}`, contentWidth - 14);
+      const cardHeight = 6 + (obsLines.length * 3.6);
+
+      if (currentY + cardHeight > MAX_CONTENT_Y) {
+        pdf.addPage();
+        drawHeader(pdf);
+        currentY = CONTENT_START_Y;
+      }
+
+      pdf.setFillColor(240, 249, 255); // light sky #f0f9ff
+      pdf.setDrawColor(186, 230, 253); // border #bae6fd
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(margin, currentY, contentWidth, cardHeight, 1.5, 1.5, 'FD');
+
+      // Blue left indicator line
+      pdf.setFillColor(2, 132, 199); // #0284c7
+      pdf.rect(margin, currentY, 2, cardHeight, 'F');
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(30, 41, 59); // slate-800
+      pdf.text(obsLines, margin + 6, currentY + 4.5);
+
+      currentY += cardHeight + 3;
     }
   }
 
