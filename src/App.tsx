@@ -492,8 +492,10 @@ export function App() {
               loading={historyLoading}
               isAdmin={canUserDeleteAudits(currentUser)}
               onDeleteRecord={deleteAudit}
+              onUpdateRecord={saveAudit}
               onCopyText={handleCopyText}
               onViewPhoto={setLightboxSrc}
+              flashMessage={flashMessage}
             />
           </div>
         )}

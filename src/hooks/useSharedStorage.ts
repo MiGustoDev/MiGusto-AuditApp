@@ -277,7 +277,14 @@ export function useSharedStorage() {
               ...record,
               _id: savedId
             };
-            setRecords(prev => [savedItem, ...prev.filter(r => r._id !== savedId)]);
+            setRecords(prev => {
+              const exists = prev.some(r => r._id === savedId);
+              const updated = exists
+                ? prev.map(r => (r._id === savedId ? savedItem : r))
+                : [savedItem, ...prev];
+              saveLocalRecords(updated);
+              return updated;
+            });
           } else {
             await fetchSupabaseRecords();
           }
@@ -316,8 +323,10 @@ export function useSharedStorage() {
         _id: id
       };
       setRecords(prev => {
-        const filtered = prev.filter(r => r._id !== id);
-        const updatedList = [recordWithId, ...filtered];
+        const exists = prev.some(r => r._id === id);
+        const updatedList = exists
+          ? prev.map(r => (r._id === id ? recordWithId : r))
+          : [recordWithId, ...prev];
         saveLocalRecords(updatedList);
         return updatedList;
       });

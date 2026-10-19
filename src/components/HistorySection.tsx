@@ -21,8 +21,11 @@ import {
   Check,
   Filter,
   SlidersHorizontal,
-  Sparkles
+  Sparkles,
+  Pencil,
+  Users
 } from 'lucide-react';
+import { EditAuditModal } from './EditAuditModal';
 
 export type HistoryFilterType = 'todos' | 'normal' | 'experience' | 'incompleta' | 'aprobada' | 'no_aprobada';
 
@@ -47,8 +50,10 @@ interface HistorySectionProps {
   loading: boolean;
   isAdmin: boolean;
   onDeleteRecord: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  onUpdateRecord?: (record: SavedAuditRecord) => Promise<{ ok: boolean; error?: string; id?: string }>;
   onCopyText: (text: string) => void;
   onViewPhoto: (photoSrc: string) => void;
+  flashMessage?: (msg: string, isErr?: boolean) => void;
 }
 
 export const HistorySection: React.FC<HistorySectionProps> = ({
@@ -56,12 +61,21 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
   loading,
   isAdmin,
   onDeleteRecord,
+  onUpdateRecord,
   onCopyText,
-  onViewPhoto
+  onViewPhoto,
+  flashMessage
 }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<HistoryFilterType>('todos');
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+  const [editingRecord, setEditingRecord] = useState<SavedAuditRecord | null>(null);
+  const [editModalTab, setEditModalTab] = useState<'general' | 'operational'>('general');
+
+  const handleOpenEdit = (record: SavedAuditRecord, tab: 'general' | 'operational') => {
+    setEditingRecord(record);
+    setEditModalTab(tab);
+  };
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -360,6 +374,23 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                           Normal
                         </span>
                       )}
+
+                      {/* Pencil edit button in header when expanded */}
+                      {isExpanded && onUpdateRecord && (
+                        <button
+                          type="button"
+                          className="btn-hist-edit-pencil header-pencil"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(r, 'general');
+                          }}
+                          title="Editar sucursal, fecha y auditor"
+                          aria-label="Editar datos principales de la auditoría"
+                        >
+                          <Pencil size={12} />
+                          <span>Editar</span>
+                        </button>
+                      )}
                     </div>
 
                     <div className="hist-meta-chips num">
@@ -486,13 +517,41 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                       </div>
                     )}
 
-                    {/* Operational Notes */}
-                    <div className="hist-footer-meta">
-                      <span>Personal a cargo: <b>{r.personalACargo || '-'}</b></span>
-                      <span className="dot-sep">·</span>
-                      <span>Colaboradores: <b>{r.colaboradores || '-'}</b></span>
-                      <span className="dot-sep">·</span>
-                      <span>Unidades vendidas: <b>{r.unidades || '-'}</b></span>
+                    {/* Operational Notes Box with Edit Action */}
+                    <div className="hist-operational-box">
+                      <div className="hist-operational-top">
+                        <div className="hist-operational-title">
+                          <Users size={14} className="hist-operational-icon" />
+                          <span>Datos Operativos de la Sucursal</span>
+                        </div>
+                        {onUpdateRecord && (
+                          <button
+                            type="button"
+                            className="btn-hist-edit-pencil operational-pencil"
+                            onClick={() => handleOpenEdit(r, 'operational')}
+                            title="Editar datos operativos (personal a cargo, colaboradores, unidades)"
+                            aria-label="Editar datos operativos"
+                          >
+                            <Pencil size={12} />
+                            <span>Editar</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="hist-operational-chips">
+                        <div className="hist-op-chip">
+                          <span className="hist-op-label">Personal a cargo:</span>
+                          <span className="hist-op-val">{r.personalACargo || 'No especificado'}</span>
+                        </div>
+                        <div className="hist-op-chip">
+                          <span className="hist-op-label">Colaboradores:</span>
+                          <span className="hist-op-val">{r.colaboradores || 'No especificado'}</span>
+                        </div>
+                        <div className="hist-op-chip">
+                          <span className="hist-op-label">Unidades vendidas:</span>
+                          <span className="hist-op-val">{r.unidades || 'No especificado'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Actions */}
@@ -600,6 +659,18 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Audit Modal */}
+      {editingRecord && onUpdateRecord && (
+        <EditAuditModal
+          record={editingRecord}
+          initialTab={editModalTab}
+          isOpen={Boolean(editingRecord)}
+          onClose={() => setEditingRecord(null)}
+          onSave={onUpdateRecord}
+          onFlashMessage={flashMessage}
+        />
       )}
     </section>
   );
