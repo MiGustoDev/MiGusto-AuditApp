@@ -517,25 +517,13 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                       </div>
                     )}
 
-                    {/* Operational Notes Box with Edit Action */}
+                    {/* Operational Notes Box */}
                     <div className="hist-operational-box">
                       <div className="hist-operational-top">
                         <div className="hist-operational-title">
                           <Users size={14} className="hist-operational-icon" />
                           <span>Datos Operativos de la Sucursal</span>
                         </div>
-                        {onUpdateRecord && (
-                          <button
-                            type="button"
-                            className="btn-hist-edit-pencil operational-pencil"
-                            onClick={() => handleOpenEdit(r, 'operational')}
-                            title="Editar datos operativos (personal a cargo, colaboradores, unidades)"
-                            aria-label="Editar datos operativos"
-                          >
-                            <Pencil size={12} />
-                            <span>Editar</span>
-                          </button>
-                        )}
                       </div>
 
                       <div className="hist-operational-chips">

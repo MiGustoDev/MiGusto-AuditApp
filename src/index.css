@@ -6596,7 +6596,6 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: fadeIn 0.2s ease-out forwards;
 }
 
 .edit-modal-card {

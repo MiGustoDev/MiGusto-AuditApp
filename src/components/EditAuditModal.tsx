@@ -41,6 +41,7 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
   const [colaboradores, setColaboradores] = useState('');
   const [unidades, setUnidades] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
@@ -57,12 +58,19 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
       setUnidades(record.unidades || '');
       setActiveTab(initialTab);
       setError(null);
+      setIsClosing(false);
     }
   }, [record, isOpen, initialTab]);
 
-  // Animate modal entry
+  // Smooth entry animation
   useEffect(() => {
-    if (isOpen && cardRef.current) {
+    if (isOpen && cardRef.current && modalRef.current) {
+      setIsClosing(false);
+      gsap.fromTo(
+        modalRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: 'power2.out' }
+      );
       gsap.fromTo(
         cardRef.current,
         { opacity: 0, scale: 0.95, y: 15 },
@@ -71,16 +79,44 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
     }
   }, [isOpen]);
 
+  // Smooth exit animation
+  const handleClose = () => {
+    if (isClosing || isSaving) return;
+    setIsClosing(true);
+
+    if (modalRef.current && cardRef.current) {
+      gsap.to(cardRef.current, {
+        opacity: 0,
+        scale: 0.95,
+        y: 12,
+        duration: 0.2,
+        ease: 'power2.in'
+      });
+      gsap.to(modalRef.current, {
+        opacity: 0,
+        duration: 0.2,
+        ease: 'power2.in',
+        onComplete: () => {
+          setIsClosing(false);
+          onClose();
+        }
+      });
+    } else {
+      setIsClosing(false);
+      onClose();
+    }
+  };
+
   // Handle ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !isSaving) {
-        onClose();
+      if (e.key === 'Escape' && isOpen && !isSaving && !isClosing) {
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isSaving, onClose]);
+  }, [isOpen, isSaving, isClosing]);
 
   if (!isOpen || !record) return null;
 
@@ -124,7 +160,7 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
       const res = await onSave(updated);
       if (res.ok) {
         onFlashMessage?.(`¡Auditoría de ${updated.tienda} actualizada con éxito!`);
-        onClose();
+        handleClose();
       } else {
         setError(res.error || 'No se pudo guardar la modificación.');
       }
@@ -140,8 +176,8 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
       className="edit-modal-backdrop"
       ref={modalRef}
       onClick={(e) => {
-        if (e.target === modalRef.current && !isSaving) {
-          onClose();
+        if (e.target === modalRef.current && !isSaving && !isClosing) {
+          handleClose();
         }
       }}
       role="dialog"
@@ -166,8 +202,8 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
           <button 
             type="button" 
             className="edit-modal-close-btn"
-            onClick={onClose}
-            disabled={isSaving}
+            onClick={handleClose}
+            disabled={isSaving || isClosing}
             aria-label="Cerrar ventana de edición"
           >
             <X size={18} />
@@ -301,18 +337,9 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
           {/* Footer Actions */}
           <div className="edit-modal-footer">
             <button
-              type="button"
-              className="btn btn-outline"
-              onClick={onClose}
-              disabled={isSaving}
-            >
-              <span>Cancelar</span>
-            </button>
-
-            <button
               type="submit"
               className="btn btn-primary btn-save-edit"
-              disabled={isSaving}
+              disabled={isSaving || isClosing}
             >
               {isSaving ? (
                 <>
@@ -325,6 +352,15 @@ export const EditAuditModal: React.FC<EditAuditModalProps> = ({
                   <span>Guardar cambios</span>
                 </>
               )}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={handleClose}
+              disabled={isSaving || isClosing}
+            >
+              <span>Cancelar</span>
             </button>
           </div>
         </form>
