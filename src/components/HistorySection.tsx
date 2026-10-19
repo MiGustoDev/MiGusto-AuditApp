@@ -23,9 +23,27 @@ import {
   SlidersHorizontal,
   Sparkles,
   Pencil,
-  Users
+  Users,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { EditAuditModal } from './EditAuditModal';
+import { CustomDateRangePicker } from './CustomDateRangePicker';
+
+const ITEMS_PER_PAGE = 10;
+
+const getPageNumbers = (current: number, total: number) => {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total];
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total];
+};
 
 export type HistoryFilterType = 'todos' | 'normal' | 'experience' | 'incompleta' | 'aprobada' | 'no_aprobada';
 
@@ -71,6 +89,24 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [editingRecord, setEditingRecord] = useState<SavedAuditRecord | null>(null);
   const [editModalTab, setEditModalTab] = useState<'general' | 'operational'>('general');
+
+  // Date Range Filter State
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState<boolean>(false);
+  const dateFilterDropdownRef = useRef<HTMLDivElement>(null);
+
+  const hasDateFilter = Boolean(dateFrom || dateTo);
+
+  const getDateFilterLabel = () => {
+    if (!dateFrom && !dateTo) return 'Fecha';
+    if (dateFrom && dateTo) {
+      if (dateFrom === dateTo) return fmtDate(dateFrom);
+      return `${fmtDate(dateFrom)} - ${fmtDate(dateTo)}`;
+    }
+    if (dateFrom) return `Desde ${fmtDate(dateFrom)}`;
+    return `Hasta ${fmtDate(dateTo)}`;
+  };
 
   const handleOpenEdit = (record: SavedAuditRecord, tab: 'general' | 'operational') => {
     setEditingRecord(record);
@@ -137,7 +173,12 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
       (r.fecha || '').includes(q);
     if (!matchesSearch) return false;
 
-    // 2. Dropdown filter
+    // 2. Date Range Filter
+    const rDate = (r.fecha || '').slice(0, 10);
+    if (dateFrom && rDate < dateFrom) return false;
+    if (dateTo && rDate > dateTo) return false;
+
+    // 3. Dropdown filter
     switch (selectedFilter) {
       case 'normal':
         return r.auditMode !== 'experience';
@@ -155,15 +196,38 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
     }
   });
 
+  // Pagination logic
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Reset to page 1 whenever search or filter options change
   useEffect(() => {
-    if (listRef.current && filteredList.length > 0) {
+    setCurrentPage(1);
+  }, [searchTerm, selectedFilter, dateFrom, dateTo]);
+
+  const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedRecords = filteredList.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    if (page === safePage || page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    if (listRef.current) {
+      listRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  useEffect(() => {
+    if (listRef.current && paginatedRecords.length > 0) {
       gsap.fromTo(
         listRef.current.querySelectorAll('.history-card'),
         { opacity: 0, y: 10 },
-        { opacity: 1, y: 0, duration: 0.3, stagger: 0.035, ease: 'power2.out', clearProps: 'all' }
+        { opacity: 1, y: 0, duration: 0.28, stagger: 0.03, ease: 'power2.out', clearProps: 'all' }
       );
     }
-  }, [filteredList.length, searchTerm, selectedFilter]);
+  }, [safePage, filteredList.length, searchTerm, selectedFilter, dateFrom, dateTo]);
 
   const getStatusClass = (estado?: string): 'bad' | 'ok' | 'warn' => {
     const s = (estado || '').toLowerCase();
@@ -191,21 +255,26 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
       if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
         setIsFilterOpen(false);
       }
+      if (dateFilterDropdownRef.current && !dateFilterDropdownRef.current.contains(event.target as Node)) {
+        setIsDateFilterOpen(false);
+      }
     };
 
-    if (isFilterOpen) {
+    if (isFilterOpen || isDateFilterOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isFilterOpen]);
+  }, [isFilterOpen, isDateFilterOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isFilterOpen) {
           setIsFilterOpen(false);
+        } else if (isDateFilterOpen) {
+          setIsDateFilterOpen(false);
         } else if (confirmDeleteId && !deletingId) {
           setConfirmDeleteId(null);
         }
@@ -213,7 +282,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFilterOpen, confirmDeleteId, deletingId]);
+  }, [isFilterOpen, isDateFilterOpen, confirmDeleteId, deletingId]);
 
   const recordToDelete = confirmDeleteId
     ? records.find(r => (r._id || `${r.fecha}-${r.tienda}`) === confirmDeleteId)
@@ -253,12 +322,66 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
           )}
         </div>
 
+        {/* Date Range Filter Dropdown */}
+        <div className="hist-date-filter-wrapper" ref={dateFilterDropdownRef}>
+          <button
+            type="button"
+            className={`hist-filter-trigger ${isDateFilterOpen ? 'is-open' : ''} ${hasDateFilter ? 'has-filter' : ''}`}
+            onClick={() => {
+              setIsDateFilterOpen(prev => !prev);
+              if (isFilterOpen) setIsFilterOpen(false);
+            }}
+            aria-expanded={isDateFilterOpen}
+            aria-haspopup="dialog"
+            aria-label="Filtrar por rango de fechas"
+          >
+            <div className="hist-filter-trigger-content">
+              <Calendar size={14} className="hist-filter-trigger-icon" />
+              <span className="hist-filter-trigger-label" title={getDateFilterLabel()}>
+                {getDateFilterLabel()}
+              </span>
+            </div>
+            {hasDateFilter ? (
+              <span
+                role="button"
+                tabIndex={0}
+                className="hist-date-clear-inline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+                title="Quitar filtro de fecha"
+              >
+                ×
+              </span>
+            ) : (
+              <ChevronDown size={14} className={`hist-filter-chevron ${isDateFilterOpen ? 'rotate' : ''}`} />
+            )}
+          </button>
+
+          {isDateFilterOpen && (
+            <CustomDateRangePicker
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onSelectRange={(from, to) => {
+                setDateFrom(from);
+                setDateTo(to);
+              }}
+              onClose={() => setIsDateFilterOpen(false)}
+            />
+          )}
+        </div>
+
         {/* Filter Dropdown */}
         <div className="hist-filter-dropdown-wrapper" ref={filterDropdownRef}>
           <button
             type="button"
             className={`hist-filter-trigger ${isFilterOpen ? 'is-open' : ''} ${selectedFilter !== 'todos' ? 'has-filter' : ''}`}
-            onClick={() => setIsFilterOpen(prev => !prev)}
+            onClick={() => {
+              setIsFilterOpen(prev => !prev);
+              if (isDateFilterOpen) setIsDateFilterOpen(false);
+            }}
             aria-expanded={isFilterOpen}
             aria-haspopup="listbox"
             aria-label="Filtrar auditorías"
@@ -327,9 +450,11 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                 ? `No se encontraron auditorías para "${searchTerm}" con el filtro "${activeFilterOption.label}".`
                 : searchTerm
                 ? `No se encontraron auditorías para "${searchTerm}".`
+                : hasDateFilter
+                ? `No se encontraron auditorías en el rango de fechas seleccionado (${getDateFilterLabel()}).`
                 : `No se encontraron auditorías con el filtro "${activeFilterOption.label}".`}
             </p>
-            {(searchTerm || selectedFilter !== 'todos') && (
+            {(searchTerm || selectedFilter !== 'todos' || hasDateFilter) && (
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"
@@ -337,6 +462,8 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
                 onClick={() => {
                   setSearchTerm('');
                   setSelectedFilter('todos');
+                  setDateFrom('');
+                  setDateTo('');
                 }}
               >
                 Limpiar filtros
@@ -344,7 +471,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
             )}
           </div>
         ) : (
-          filteredList.map(r => {
+          paginatedRecords.map(r => {
             const cls = getStatusClass(r.estado);
             const id = r._id || `${r.fecha}-${r.tienda}`;
             const isExpanded = expandedId === id;
@@ -595,6 +722,69 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
           })
         )}
       </div>
+
+      {/* Pagination Controls (only shown when filteredList.length > ITEMS_PER_PAGE) */}
+      {filteredList.length > ITEMS_PER_PAGE && (
+        <div className="history-pagination-container">
+          <div className="pagination-info">
+            <span>
+              Mostrando <b>{startIndex + 1} - {Math.min(endIndex, filteredList.length)}</b> de <b>{filteredList.length}</b> auditorías
+            </span>
+          </div>
+
+          <div className="pagination-controls">
+            <button
+              type="button"
+              className="btn-pagination-nav"
+              disabled={safePage === 1}
+              onClick={() => handlePageChange(safePage - 1)}
+              title="Página anterior"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft size={16} />
+              <span>Anterior</span>
+            </button>
+
+            <div className="pagination-pages-group">
+              {getPageNumbers(safePage, totalPages).map((p, idx) => {
+                if (p === '...') {
+                  return (
+                    <span key={`ellipsis-${idx}`} className="pagination-ellipsis">
+                      ...
+                    </span>
+                  );
+                }
+                const pageNum = p as number;
+                const isActive = pageNum === safePage;
+                return (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    className={`btn-page-number ${isActive ? 'active' : ''}`}
+                    onClick={() => handlePageChange(pageNum)}
+                    aria-current={isActive ? 'page' : undefined}
+                    aria-label={`Ir a la página ${pageNum}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              className="btn-pagination-nav"
+              disabled={safePage === totalPages}
+              onClick={() => handlePageChange(safePage + 1)}
+              title="Página siguiente"
+              aria-label="Página siguiente"
+            >
+              <span>Siguiente</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmación para eliminar registro (solo si es Admin) */}
       {isAdmin && confirmDeleteId && (
