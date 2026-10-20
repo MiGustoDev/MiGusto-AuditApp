@@ -295,21 +295,44 @@ input[type="date"],
   display: block;
 }
 
-.brand-app-title {
+.brand-titles-desktop {
   display: none;
 }
 
 @media (min-width: 769px) {
-  .brand-app-title {
-    display: inline-block;
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: var(--fg);
-    letter-spacing: -0.01em;
-    white-space: nowrap;
+  .brand-titles-desktop {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+    padding-left: 14px;
+    margin-left: 4px;
     user-select: none;
-    line-height: 1;
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  .brand-app-title {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     font-family: var(--font-display);
+    white-space: nowrap;
+    line-height: 1.15;
+  }
+
+  .brand-app-subtitle {
+    display: block;
+    font-size: 0.64rem;
+    font-weight: 600;
+    color: var(--fg-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-top: 2px;
   }
 }
 

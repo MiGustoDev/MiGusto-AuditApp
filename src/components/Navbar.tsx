@@ -144,7 +144,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{ cursor: 'pointer' }}
             >
               <img src="logo.png" alt="Mi Gusto" className="brand-logo-img" />
-              <span className="brand-app-title">Sistema de control operativo</span>
+              <div className="brand-titles-desktop">
+                <span className="brand-app-title">Control Operativo</span>
+                <span className="brand-app-subtitle">Auditoría Integral de Calidad</span>
+              </div>
             </div>
             {storeName && (
               <button 
