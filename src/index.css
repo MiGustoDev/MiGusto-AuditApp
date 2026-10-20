@@ -7405,6 +7405,82 @@ html, body {
   transform: translateY(-1px);
 }
 
+@media (max-width: 680px) {
+  .edit-modal-backdrop {
+    padding: 12px;
+  }
+
+  .edit-modal-card {
+    padding: 18px 16px;
+    border-radius: var(--radius-lg);
+    gap: 14px;
+    max-height: 92vh;
+  }
+
+  .edit-modal-header {
+    padding-bottom: 10px;
+  }
+
+  .edit-modal-heading {
+    font-size: 1.15rem;
+  }
+
+  .edit-modal-sub {
+    font-size: 0.78rem;
+  }
+
+  .edit-modal-close-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .edit-modal-tabs {
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .edit-tab-btn {
+    padding: 7px 8px;
+    font-size: 0.80rem;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .edit-tab-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .edit-fields-group {
+    gap: 12px;
+  }
+
+  .edit-modal-footer {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    padding-top: 12px;
+    margin-top: 4px;
+  }
+
+  .edit-modal-footer .btn {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 0.84rem;
+    border-radius: var(--radius-md);
+  }
+
+  .btn-save-edit {
+    flex: 1.5;
+    justify-content: center;
+  }
+
+  .edit-modal-footer .btn-outline {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
 /* ==========================================================================
    HISTORY PAGINATION COMPONENT
    ========================================================================== */
