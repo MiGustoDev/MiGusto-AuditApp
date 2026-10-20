@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import gsap from 'gsap';
 import { Lock, Eye, EyeOff, Check, AlertCircle, X } from 'lucide-react';
 import { updateUserPassword, UserProfile } from '../lib/auth';
 
@@ -20,8 +21,78 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Smooth entrance animation
+  useEffect(() => {
+    if (isOpen && cardRef.current && backdropRef.current) {
+      setIsClosing(false);
+      gsap.fromTo(
+        backdropRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: 'power2.out' }
+      );
+      gsap.fromTo(
+        cardRef.current,
+        { opacity: 0, scale: 0.94, y: 14 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.25, ease: 'power2.out' }
+      );
+    }
+  }, [isOpen]);
+
+  // Smooth exit animation
+  const handleClose = () => {
+    if (isClosing || isLoading) return;
+    setIsClosing(true);
+
+    if (backdropRef.current && cardRef.current) {
+      gsap.to(cardRef.current, {
+        opacity: 0,
+        scale: 0.94,
+        y: 10,
+        duration: 0.2,
+        ease: 'power2.in'
+      });
+      gsap.to(backdropRef.current, {
+        opacity: 0,
+        duration: 0.2,
+        ease: 'power2.in',
+        onComplete: () => {
+          setIsClosing(false);
+          onClose();
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setErrorMsg('');
+          setSuccessMsg('');
+        }
+      });
+    } else {
+      setIsClosing(false);
+      onClose();
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrorMsg('');
+      setSuccessMsg('');
+    }
+  };
+
+  // Handle ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && !isLoading && !isClosing) {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isLoading, isClosing]);
 
   if (!isOpen || !currentUser) return null;
 
@@ -54,12 +125,8 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       if (res.success) {
         setSuccessMsg('¡Contraseña actualizada con éxito!');
         setTimeout(() => {
-          onClose();
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setSuccessMsg('');
-        }, 1200);
+          handleClose();
+        }, 1100);
       } else {
         setErrorMsg(res.error || 'No se pudo actualizar la contraseña.');
       }
@@ -70,12 +137,23 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   };
 
   return (
-    <div className="change-pwd-backdrop" role="dialog" aria-modal="true">
-      <div className="change-pwd-card">
+    <div 
+      ref={backdropRef}
+      className="change-pwd-backdrop" 
+      role="dialog" 
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === backdropRef.current && !isLoading && !isClosing) {
+          handleClose();
+        }
+      }}
+    >
+      <div className="change-pwd-card" ref={cardRef}>
         {/* Close button */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
+          disabled={isLoading || isClosing}
           className="change-pwd-close-btn"
           aria-label="Cerrar modal"
         >
@@ -87,11 +165,13 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           <div className="change-pwd-icon-wrap">
             <Lock size={22} />
           </div>
-          <div className="min-w-0">
+          <div className="change-pwd-header-text">
             <h3 className="change-pwd-title">Cambiar contraseña</h3>
-            <p className="change-pwd-subtitle">
-              {currentUser.name} ({currentUser.email})
-            </p>
+            <div className="change-pwd-subtitle">
+              <span className="change-pwd-user-name">{currentUser.name}</span>
+              <span className="change-pwd-user-sep">•</span>
+              <span className="change-pwd-user-email">{currentUser.email}</span>
+            </div>
           </div>
         </div>
 
@@ -183,21 +263,29 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             </div>
           </div>
 
+          {/* Buttons: Submit first, Cancel second */}
           <div className="change-pwd-actions">
             <button
+              type="submit"
+              disabled={isLoading || isClosing}
+              className="change-pwd-btn-submit"
+            >
+              {isLoading ? (
+                <>
+                  <span className="spinner-sm"></span>
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                'Actualizar contraseña'
+              )}
+            </button>
+            <button
               type="button"
-              onClick={onClose}
-              disabled={isLoading}
+              onClick={handleClose}
+              disabled={isLoading || isClosing}
               className="change-pwd-btn-cancel"
             >
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="change-pwd-btn-submit"
-            >
-              {isLoading ? 'Guardando...' : 'Actualizar contraseña'}
             </button>
           </div>
         </form>
