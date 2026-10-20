@@ -397,6 +397,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="side-menu-header">
               <div className="brand-logo-wrap">
                 <img src="logo.png" alt="Mi Gusto" className="brand-logo-img" />
+                <div className="side-menu-brand-titles">
+                  <span className="brand-app-title">Control Operativo</span>
+                  <span className="brand-app-subtitle">Auditoría Integral de Calidad</span>
+                </div>
               </div>
               <button
                 type="button"
@@ -469,14 +473,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {onOpenChangePassword && (
                   <button
                     type="button"
-                    className="side-menu-logout-btn"
-                    style={{ marginBottom: '8px', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}
+                    className="side-menu-pwd-btn"
                     onClick={() => {
                       handleCloseMenu();
                       onOpenChangePassword();
                     }}
                   >
-                    <KeyRound size={16} />
+                    <KeyRound size={15} />
                     <span>Cambiar Contraseña</span>
                   </button>
                 )}
@@ -490,7 +493,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       onLogout();
                     }}
                   >
-                    <LogOut size={16} />
+                    <LogOut size={15} />
                     <span>Cerrar Sesión</span>
                   </button>
                 )}

@@ -1613,10 +1613,18 @@ input[type="date"],
   font-family: inherit;
   resize: none;
   overflow-y: hidden;
+  height: 38px;
   min-height: 38px;
   line-height: 1.4;
   outline: none;
   transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.observation-input-box textarea::placeholder {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-subtle);
 }
 
 .observation-input-box textarea:focus {
@@ -4412,6 +4420,41 @@ html, body {
   border-bottom: 1px solid var(--line);
 }
 
+.side-menu-brand-titles {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  padding-left: 10px;
+  margin-left: 2px;
+  user-select: none;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.side-menu-brand-titles .brand-app-title {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.side-menu-brand-titles .brand-app-subtitle {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--fg-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
 .side-menu-store-info {
   margin-top: 14px;
   padding: 8px 12px;
@@ -6675,28 +6718,54 @@ html, body {
   margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
+.side-menu-pwd-btn,
 .side-menu-logout-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 11px;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 16px;
   border-radius: var(--radius-md);
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #fca5a5;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
 }
 
-.side-menu-logout-btn:hover {
-  background: rgba(239, 68, 68, 0.22);
-  border-color: rgba(239, 68, 68, 0.4);
+.side-menu-pwd-btn {
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+}
+
+.side-menu-pwd-btn:hover,
+.side-menu-pwd-btn:active {
+  background: rgba(245, 158, 11, 0.20);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fef3c7;
+}
+
+.side-menu-logout-btn {
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.side-menu-logout-btn:hover,
+.side-menu-logout-btn:active {
+  background: rgba(239, 68, 68, 0.20);
+  border-color: rgba(239, 68, 68, 0.45);
   color: #ffffff;
 }
 

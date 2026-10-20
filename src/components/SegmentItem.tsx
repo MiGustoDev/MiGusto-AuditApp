@@ -63,8 +63,12 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
   // Auto-resize textarea to fit content and line breaks
   useEffect(() => {
     if (obsTextareaRef.current && showExtra) {
-      obsTextareaRef.current.style.height = 'auto';
-      obsTextareaRef.current.style.height = `${Math.max(38, obsTextareaRef.current.scrollHeight)}px`;
+      if (!answer?.o) {
+        obsTextareaRef.current.style.height = '38px';
+      } else {
+        obsTextareaRef.current.style.height = 'auto';
+        obsTextareaRef.current.style.height = `${Math.max(38, obsTextareaRef.current.scrollHeight)}px`;
+      }
     }
   }, [showExtra, answer?.o]);
 
@@ -81,8 +85,12 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
 
   const handleObsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onObservation(segmentIndex, itemIndex, e.target.value);
-    e.target.style.height = 'auto';
-    e.target.style.height = `${Math.max(38, e.target.scrollHeight)}px`;
+    if (!e.target.value) {
+      e.target.style.height = '38px';
+    } else {
+      e.target.style.height = 'auto';
+      e.target.style.height = `${Math.max(38, e.target.scrollHeight)}px`;
+    }
   };
 
   const handleChoiceClick = (status: ItemStatus, btnElement?: HTMLElement) => {
@@ -323,7 +331,7 @@ export const SegmentItem: React.FC<SegmentItemProps> = ({
               ref={obsTextareaRef}
               placeholder={
                 currentStatus === 'ok'
-                  ? 'Comentarios adicionales u observación (opcional)...'
+                  ? 'Observación (opcional)...'
                   : 'Describí el motivo del desvío u observación...'
               }
               aria-label={`Observación del ítem ${itemNumber}`}
