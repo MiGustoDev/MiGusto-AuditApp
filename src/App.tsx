@@ -139,11 +139,13 @@ export function App() {
   };
 
   const handleSaveAuditRecord = async (recordToSave: ReturnType<typeof buildRecordToSave>) => {
-    if (currentAuditId) {
-      recordToSave._id = currentAuditId;
+    const stableId = currentAuditId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `audit_${Date.now()}`);
+    recordToSave._id = stableId;
+    if (!currentAuditId) {
+      setCurrentAuditId(stableId);
     }
     const res = await saveAudit(recordToSave);
-    if (res.ok && res.id) {
+    if (res.id) {
       setCurrentAuditId(res.id);
     }
     return res;
@@ -162,14 +164,16 @@ export function App() {
 
     setIsEvaluating(true);
     
-    // Build and save record automatically to history
+    // Build and save record automatically to history with immediate stable ID
     try {
-      const record = buildRecordToSave(state, summary, myId, auditMode);
-      if (currentAuditId) {
-        record._id = currentAuditId;
+      const stableId = currentAuditId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `audit_${Date.now()}`);
+      if (!currentAuditId) {
+        setCurrentAuditId(stableId);
       }
+      const record = buildRecordToSave(state, summary, myId, auditMode);
+      record._id = stableId;
       const res = await saveAudit(record);
-      if (res.ok && res.id) {
+      if (res.id) {
         setCurrentAuditId(res.id);
       }
     } catch (err) {
@@ -468,6 +472,7 @@ export function App() {
               setToast={setToast}
               flashMessage={flashMessage}
               auditMode={auditMode}
+              currentAuditId={currentAuditId}
               onGoToHistory={() => {
                 setActiveTab('history');
                 window.scrollTo({ top: 0, behavior: 'smooth' });

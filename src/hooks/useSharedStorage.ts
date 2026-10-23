@@ -3,6 +3,31 @@ import { SavedAuditRecord, ClaudeAssets, ClaudeDb, ClaudeDownloads, ClaudeUser }
 import { HISTORY_STORAGE_KEY } from '../data/segments';
 import { supabase, isSupabaseConfigured, uploadPhotoToSupabase } from '../lib/supabase';
 
+// Generate business signature to identify the logical audit (prevents duplicating the same audit)
+export const getRecordSignature = (r: { tienda?: string; fecha?: string; auditor?: string; auditMode?: string }): string => {
+  const t = (r.tienda || '').trim().toLowerCase();
+  const f = (r.fecha || '').trim().slice(0, 10);
+  const a = (r.auditor || '').trim().toLowerCase();
+  const m = r.auditMode || 'normal';
+  return `${t}#${f}#${a}#${m}`;
+};
+
+export const isValidUuid = (id?: string | null): boolean => {
+  if (!id) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+};
+
+export const generateSecureAuditId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 export function useSharedStorage() {
   const [records, setRecords] = useState<SavedAuditRecord[]>([]);
   const [isClaudeEnv, setIsClaudeEnv] = useState<boolean>(false);
@@ -18,6 +43,7 @@ export function useSharedStorage() {
   const userRef = useRef<ClaudeUser | null>(null);
   const downloadsRef = useRef<ClaudeDownloads | null>(null);
   const assetsRef = useRef<ClaudeAssets | null>(null);
+  const isSyncingRef = useRef<boolean>(false);
 
   // Load from local storage fallback
   const loadLocalRecords = useCallback((): SavedAuditRecord[] => {
@@ -43,6 +69,54 @@ export function useSharedStorage() {
       console.error('Error saving local history:', e);
     }
   }, []);
+
+  // Background sync for offline records to Supabase
+  const syncOfflineRecords = useCallback(async (offlineList: SavedAuditRecord[]) => {
+    if (!supabase || isSyncingRef.current || offlineList.length === 0) return;
+    isSyncingRef.current = true;
+    try {
+      for (const record of offlineList) {
+        try {
+          const stableId = isValidUuid(record._id) ? record._id! : generateSecureAuditId();
+          const payload: any = {
+            id: stableId,
+            tienda: record.tienda,
+            auditor: record.auditor,
+            fecha: record.fecha,
+            colaboradores: record.colaboradores,
+            personalACargo: record.personalACargo,
+            unidades: record.unidades,
+            total: record.total,
+            estado: record.estado,
+            completa: record.completa,
+            evaluados: record.evaluados,
+            segmentos: record.segmentos,
+            desvios: record.desvios,
+            fotos: record.fotos,
+            respuestas: record.respuestas,
+            resumen: record.resumen,
+            auditMode: record.auditMode || 'normal',
+            savedBy: record.savedBy || 'offline_sync',
+            savedAt: record.savedAt || new Date().toISOString()
+          };
+
+          const { data, error } = await supabase.from('audits').upsert([payload]).select();
+          if (!error && data && data[0]) {
+            const syncedId = data[0].id?.toString() || stableId;
+            const currentLocals = loadLocalRecords();
+            const updatedLocals = currentLocals.map(l =>
+              l._id === record._id ? { ...l, _id: syncedId } : l
+            );
+            saveLocalRecords(updatedLocals);
+          }
+        } catch (subErr) {
+          console.warn('Failed to sync individual offline record:', subErr);
+        }
+      }
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [loadLocalRecords, saveLocalRecords]);
 
   // Fetch audits from Supabase
   const fetchSupabaseRecords = useCallback(async () => {
@@ -82,16 +156,36 @@ export function useSharedStorage() {
           savedAt: item.savedAt || new Date().toISOString()
         }));
 
-        // Combinar con los registros que pudieran estar en LocalStorage para no perderlos
+        // Combinar con los registros de LocalStorage deduplicando estrictamente por ID y por firma de auditoría
         const local = loadLocalRecords();
         const existingIds = new Set(mapped.map(m => m._id));
-        const missingLocals = local.filter(l => l._id && !existingIds.has(l._id));
+        const existingSignatures = new Set(mapped.map(getRecordSignature));
+
+        const missingLocals: SavedAuditRecord[] = [];
+        const offlineToSync: SavedAuditRecord[] = [];
+
+        for (const l of local) {
+          if (!l._id) continue;
+          if (existingIds.has(l._id)) continue;
+          const sig = getRecordSignature(l);
+          if (existingSignatures.has(sig)) continue;
+
+          missingLocals.push(l);
+          if (l._id.startsWith('local_')) {
+            offlineToSync.push(l);
+          }
+        }
 
         const merged = [...mapped, ...missingLocals].sort(
           (a, b) => new Date(b.savedAt || 0).getTime() - new Date(a.savedAt || 0).getTime()
         );
 
         setRecords(merged);
+
+        // Disparar sincronización automática en segundo plano si hay registros offline pendientes
+        if (offlineToSync.length > 0) {
+          syncOfflineRecords(offlineToSync);
+        }
       }
     } catch (err) {
       console.error('Failed to query Supabase:', err);
@@ -100,7 +194,7 @@ export function useSharedStorage() {
     } finally {
       setLoading(false);
     }
-  }, [loadLocalRecords]);
+  }, [loadLocalRecords, syncOfflineRecords]);
 
   useEffect(() => {
     let unsubscribeClaude: (() => void) | undefined;
@@ -226,7 +320,27 @@ export function useSharedStorage() {
       // 1. Supabase save
       if (dbType === 'supabase' && supabase) {
         try {
+          const sig = getRecordSignature(record);
+
+          // Find existing record match in current memory to update rather than duplicate
+          const existingMatch = records.find(r =>
+            r._id &&
+            !r._id.startsWith('local_') &&
+            getRecordSignature(r) === sig
+          );
+
+          // Determine stable UUID
+          let targetId = record._id;
+          if (!isValidUuid(targetId)) {
+            if (existingMatch?._id && isValidUuid(existingMatch._id)) {
+              targetId = existingMatch._id;
+            } else {
+              targetId = generateSecureAuditId();
+            }
+          }
+
           const payload: any = {
+            id: targetId,
             tienda: record.tienda,
             auditor: record.auditor,
             fecha: record.fecha,
@@ -247,10 +361,6 @@ export function useSharedStorage() {
             savedAt: record.savedAt || new Date().toISOString()
           };
 
-          if (record._id && !record._id.startsWith('local_')) {
-            payload.id = record._id;
-          }
-
           const { data, error } = await supabase
             .from('audits')
             .upsert([payload])
@@ -258,41 +368,52 @@ export function useSharedStorage() {
 
           if (error) {
             console.error('Supabase upsert error:', error);
-            // Backup to local storage on error
-            const id = record._id || ('local_' + Date.now());
-            const fallbackRecord: SavedAuditRecord = { ...record, _id: id };
-            const updated = [fallbackRecord, ...records.filter(r => r._id !== id)];
+            // Backup to local storage on error with the stable ID
+            const fallbackRecord: SavedAuditRecord = { ...record, _id: targetId };
+            const updated = [
+              fallbackRecord,
+              ...records.filter(r => r._id !== targetId && getRecordSignature(r) !== sig)
+            ];
             setRecords(updated);
             saveLocalRecords(updated);
             return {
               ok: false,
-              error: `Error de base de datos: ${error.message}. (Si es la primera vez, asegurate de ejecutar el script SQL en Supabase).`
+              id: targetId,
+              error: `Error de base de datos: ${error.message}. Guardado localmente como respaldo.`
             };
           }
 
-          let savedId = record._id;
-          if (data && data[0]) {
-            savedId = data[0].id?.toString() || data[0]._id;
-            const savedItem: SavedAuditRecord = {
-              ...record,
-              _id: savedId
-            };
-            setRecords(prev => {
-              const exists = prev.some(r => r._id === savedId);
-              const updated = exists
-                ? prev.map(r => (r._id === savedId ? savedItem : r))
-                : [savedItem, ...prev];
-              saveLocalRecords(updated);
-              return updated;
-            });
-          } else {
-            await fetchSupabaseRecords();
-          }
+          const finalId = data?.[0]?.id?.toString() || targetId;
+          const savedItem: SavedAuditRecord = {
+            ...record,
+            _id: finalId
+          };
 
-          return { ok: true, id: savedId };
+          setRecords(prev => {
+            const updated = [
+              savedItem,
+              ...prev.filter(r => r._id !== finalId && getRecordSignature(r) !== sig)
+            ];
+            saveLocalRecords(updated);
+            return updated;
+          });
+
+          return { ok: true, id: finalId };
         } catch (e: any) {
           console.error('Error saving to Supabase:', e);
-          return { ok: false, error: e?.message || 'Error al conectar con la base de datos Supabase.' };
+          const fallbackId = isValidUuid(record._id) ? record._id! : generateSecureAuditId();
+          const fallbackRecord: SavedAuditRecord = { ...record, _id: fallbackId };
+          const updated = [
+            fallbackRecord,
+            ...records.filter(r => r._id !== fallbackId)
+          ];
+          setRecords(updated);
+          saveLocalRecords(updated);
+          return {
+            ok: false,
+            id: fallbackId,
+            error: e?.message || 'Error al conectar con la base de datos Supabase. Guardado localmente.'
+          };
         }
       }
 
@@ -323,16 +444,17 @@ export function useSharedStorage() {
         _id: id
       };
       setRecords(prev => {
-        const exists = prev.some(r => r._id === id);
-        const updatedList = exists
-          ? prev.map(r => (r._id === id ? recordWithId : r))
-          : [recordWithId, ...prev];
+        const sig = getRecordSignature(record);
+        const updatedList = [
+          recordWithId,
+          ...prev.filter(r => r._id !== id && getRecordSignature(r) !== sig)
+        ];
         saveLocalRecords(updatedList);
         return updatedList;
       });
       return { ok: true, id };
     },
-    [dbType, isClaudeEnv, canWrite, myId, records, saveLocalRecords, fetchSupabaseRecords]
+    [dbType, isClaudeEnv, canWrite, myId, records, saveLocalRecords]
   );
 
   const deleteAudit = useCallback(
@@ -340,16 +462,21 @@ export function useSharedStorage() {
       // 1. Supabase delete
       if (dbType === 'supabase' && supabase) {
         try {
-          const { error } = await supabase.from('audits').delete().eq('id', id);
-          if (error) {
-            console.error('Supabase delete error:', error);
+          if (isValidUuid(id)) {
+            const { error } = await supabase.from('audits').delete().eq('id', id);
+            if (error) {
+              console.error('Supabase delete error:', error);
+            }
           }
-          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          // Strictly delete only the single target item
+          const targetIndex = records.findIndex(r => r._id === id || (!r._id && `${r.fecha}-${r.tienda}` === id));
+          const updated = targetIndex >= 0 ? records.filter((_, idx) => idx !== targetIndex) : records.filter(r => r._id !== id);
           setRecords(updated);
           saveLocalRecords(updated);
           return { ok: true };
         } catch (e: any) {
-          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          const targetIndex = records.findIndex(r => r._id === id || (!r._id && `${r.fecha}-${r.tienda}` === id));
+          const updated = targetIndex >= 0 ? records.filter((_, idx) => idx !== targetIndex) : records.filter(r => r._id !== id);
           setRecords(updated);
           saveLocalRecords(updated);
           return { ok: true };
@@ -360,12 +487,14 @@ export function useSharedStorage() {
       if (isClaudeEnv && dbRef.current) {
         try {
           await dbRef.current.collection('audits').doc(id).delete();
-          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          const targetIndex = records.findIndex(r => r._id === id || (!r._id && `${r.fecha}-${r.tienda}` === id));
+          const updated = targetIndex >= 0 ? records.filter((_, idx) => idx !== targetIndex) : records.filter(r => r._id !== id);
           setRecords(updated);
           saveLocalRecords(updated);
           return { ok: true };
         } catch (e) {
-          const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+          const targetIndex = records.findIndex(r => r._id === id || (!r._id && `${r.fecha}-${r.tienda}` === id));
+          const updated = targetIndex >= 0 ? records.filter((_, idx) => idx !== targetIndex) : records.filter(r => r._id !== id);
           setRecords(updated);
           saveLocalRecords(updated);
           return { ok: true };
@@ -373,7 +502,8 @@ export function useSharedStorage() {
       }
 
       // 3. Local storage delete
-      const updated = records.filter(r => (r._id || `${r.fecha}-${r.tienda}`) !== id);
+      const targetIndex = records.findIndex(r => r._id === id || (!r._id && `${r.fecha}-${r.tienda}` === id));
+      const updated = targetIndex >= 0 ? records.filter((_, idx) => idx !== targetIndex) : records.filter(r => r._id !== id);
       setRecords(updated);
       saveLocalRecords(updated);
       return { ok: true };

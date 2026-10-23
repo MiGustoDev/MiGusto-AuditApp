@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AuditMode, AuditState, AuditSummary } from '../types/audit';
 import { getTotalItems } from '../data/segments';
 import { buildRecordToSave } from '../utils/formatters';
-import { Save, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Save, RotateCcw, AlertTriangle, Check } from 'lucide-react';
 
 interface ActionToolbarProps {
   state: AuditState;
@@ -21,6 +21,7 @@ interface ActionToolbarProps {
   activeTab?: string;
   onGoToHistory?: () => void;
   auditMode?: AuditMode;
+  currentAuditId?: string | null;
 }
 
 export const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -33,11 +34,13 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   setToast,
   flashMessage,
   saveNote,
-  auditMode = 'normal'
+  auditMode = 'normal',
+  currentAuditId
 }) => {
   const [saveArmed, setSaveArmed] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const isSavingRef = useRef<boolean>(false);
 
   const totalItemsCount = getTotalItems(auditMode);
   const pendingCount = totalItemsCount - summary.done;
@@ -62,6 +65,9 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
   };
 
   const handleSaveClick = async () => {
+    // Prevent double invocation
+    if (isSavingRef.current || isSaving) return;
+
     if (canWrite === false) {
       flash('Tu acceso es solo de lectura. Pedile al dueño acceso de edición.', true);
       return;
@@ -81,15 +87,17 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
 
     setSaveArmed(false);
     setIsSaving(true);
+    isSavingRef.current = true;
 
     try {
       const record = buildRecordToSave(state, summary, myId, auditMode);
       const res = await onSave(record);
       if (res.ok) {
-        flash(`¡Auditoría de ${state.fields.f_tienda} guardada con éxito!`);
-        setTimeout(() => {
-          onReset();
-        }, 500);
+        flash(
+          currentAuditId
+            ? `¡Auditoría de ${state.fields.f_tienda} actualizada con éxito!`
+            : `¡Auditoría de ${state.fields.f_tienda} guardada con éxito!`
+        );
       } else {
         flash(res.error || 'No se pudo guardar la auditoría.', true);
       }
@@ -97,6 +105,7 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
       flash('No se pudo guardar. Revisá la conexión y probá de nuevo.', true);
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 
@@ -111,11 +120,12 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
       {/* Main Action Bar */}
       <div className="action-buttons-grid">
         <button
-          className={`btn-action primary-save ${saveArmed ? 'is-armed' : ''}`}
+          className={`btn-action primary-save ${saveArmed ? 'is-armed' : ''} ${currentAuditId ? 'is-saved' : ''}`}
           id="saveBtn"
           type="button"
           disabled={isSaving}
           onClick={handleSaveClick}
+          title={currentAuditId ? 'Auditoría ya registrada en el historial. Clic para guardar cambios.' : 'Guardar auditoría en el historial'}
         >
           {saveArmed ? (
             <>
@@ -126,6 +136,11 @@ export const ActionToolbar: React.FC<ActionToolbarProps> = ({
             <>
               <span className="spinner-sm"></span>
               <span>Guardando auditoría...</span>
+            </>
+          ) : currentAuditId ? (
+            <>
+              <Check size={18} />
+              <span>Auditoría guardada ✓</span>
             </>
           ) : (
             <>

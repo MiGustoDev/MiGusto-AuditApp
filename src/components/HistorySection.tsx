@@ -285,7 +285,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
   }, [isFilterOpen, isDateFilterOpen, confirmDeleteId, deletingId]);
 
   const recordToDelete = confirmDeleteId
-    ? records.find(r => (r._id || `${r.fecha}-${r.tienda}`) === confirmDeleteId)
+    ? records.find((r, rIdx) => (r._id || `${r.fecha}-${r.tienda}-${rIdx}`) === confirmDeleteId)
     : null;
 
   const activeFilterOption = FILTER_OPTIONS.find(o => o.id === selectedFilter) || FILTER_OPTIONS[0];
@@ -471,9 +471,9 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
             )}
           </div>
         ) : (
-          paginatedRecords.map(r => {
+          paginatedRecords.map((r, rIdx) => {
             const cls = getStatusClass(r.estado);
-            const id = r._id || `${r.fecha}-${r.tienda}`;
+            const id = r._id || `${r.fecha}-${r.tienda}-${startIndex + rIdx}`;
             const isExpanded = expandedId === id;
             const isApproved = (r.total || 0) >= PASS_SCORE;
 
