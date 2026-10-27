@@ -8099,7 +8099,10 @@ html, body {
   width: 100%;
   gap: 8px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              background-color 0.25s ease;
   position: relative;
   overflow: hidden;
   user-select: none;
@@ -8108,18 +8111,24 @@ html, body {
 .dash-tile:hover {
   border-color: var(--line-strong);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+.dash-tile:active {
+  transform: scale(0.975);
 }
 
 .dash-tile.active {
-  box-shadow: 0 0 0 2px var(--tile-border, var(--accent)), 0 6px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 2px var(--tile-border, var(--accent)), 0 8px 26px var(--tile-glow, rgba(0, 0, 0, 0.35));
   border-color: transparent;
   background: var(--surface-2);
+  transform: translateY(-2px);
 }
 
 .dash-tile.t-all {
   --tile-border: #38bdf8;
   --tile-color: #38bdf8;
+  --tile-glow: rgba(56, 189, 248, 0.25);
   --tile-bg-soft: rgba(56, 189, 248, 0.12);
   border-top: 3px solid #38bdf8;
 }
@@ -8127,6 +8136,7 @@ html, body {
 .dash-tile.t-crit {
   --tile-border: var(--bad);
   --tile-color: var(--bad);
+  --tile-glow: rgba(239, 68, 68, 0.25);
   --tile-bg-soft: rgba(239, 68, 68, 0.12);
   border-top: 3px solid var(--bad);
 }
@@ -8134,6 +8144,7 @@ html, body {
 .dash-tile.t-rev {
   --tile-border: var(--warn);
   --tile-color: var(--warn);
+  --tile-glow: rgba(245, 158, 11, 0.25);
   --tile-bg-soft: rgba(245, 158, 11, 0.12);
   border-top: 3px solid var(--warn);
 }
@@ -8141,15 +8152,32 @@ html, body {
 .dash-tile.t-ok {
   --tile-border: var(--ok);
   --tile-color: var(--ok);
+  --tile-glow: rgba(34, 197, 94, 0.25);
   --tile-bg-soft: rgba(34, 197, 94, 0.12);
   border-top: 3px solid var(--ok);
 }
 
 .dash-tile.t-none {
-  --tile-border: #64748b;
+  --tile-border: #94a3b8;
   --tile-color: #94a3b8;
+  --tile-glow: rgba(148, 163, 184, 0.2);
   --tile-bg-soft: rgba(148, 163, 184, 0.1);
   border-top: 3px solid #64748b;
+}
+
+@keyframes dashFilterEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-filter-enter {
+  animation: dashFilterEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dash-tile-head {

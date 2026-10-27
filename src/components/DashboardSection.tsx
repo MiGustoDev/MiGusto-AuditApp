@@ -123,6 +123,88 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
 
   const periodDropdownRef = useRef<HTMLDivElement>(null);
   const supDropdownRef = useRef<HTMLDivElement>(null);
+  const auditsContainerRef = useRef<HTMLDivElement>(null);
+  const bottomContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleTileClick = (filter: 'all' | 'crit' | 'rev' | 'ok' | 'none', e?: React.MouseEvent<HTMLButtonElement>) => {
+    const nextFilter = dashFilter === filter && filter !== 'all' ? 'all' : filter;
+    setDashFilter(nextFilter);
+
+    if (e?.currentTarget) {
+      gsap.fromTo(
+        e.currentTarget,
+        { scale: 0.95 },
+        { scale: 1, duration: 0.35, ease: 'back.out(2.5)' }
+      );
+    }
+
+    if (nextFilter === 'none') {
+      setTimeout(() => {
+        bottomContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+    }
+  };
+
+  // Smooth transition effect when switching filters, periods, or supervisors
+  useEffect(() => {
+    if (auditsContainerRef.current) {
+      const cards = auditsContainerRef.current.querySelectorAll('.dash-store-card');
+      const headers = auditsContainerRef.current.querySelectorAll('.dash-group-header');
+
+      if (headers.length > 0) {
+        gsap.fromTo(
+          headers,
+          { opacity: 0, x: -10 },
+          { opacity: 1, x: 0, duration: 0.28, ease: 'power2.out', clearProps: 'transform' }
+        );
+      }
+
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { opacity: 0, y: 14, scale: 0.98 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.32,
+            stagger: 0.02,
+            ease: 'power2.out',
+            clearProps: 'transform,scale'
+          }
+        );
+      }
+    }
+
+    if (bottomContainerRef.current) {
+      const chips = bottomContainerRef.current.querySelectorAll('.dash-none-chip');
+      const noneHeader = bottomContainerRef.current.querySelector('.dash-group-header');
+
+      if (noneHeader && (dashFilter === 'all' || dashFilter === 'none')) {
+        gsap.fromTo(
+          noneHeader,
+          { opacity: 0, x: -10 },
+          { opacity: 1, x: 0, duration: 0.25, ease: 'power2.out', clearProps: 'transform' }
+        );
+      }
+
+      if (chips.length > 0 && (dashFilter === 'all' || dashFilter === 'none')) {
+        gsap.fromTo(
+          chips,
+          { opacity: 0, y: 8, scale: 0.94 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.26,
+            stagger: 0.012,
+            ease: 'back.out(1.4)',
+            clearProps: 'transform,scale'
+          }
+        );
+      }
+    }
+  }, [dashFilter, periodo, selectedSup]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -478,7 +560,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
           <button
             type="button"
             className={`dash-tile t-all ${dashFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setDashFilter('all')}
+            onClick={(e) => handleTileClick('all', e)}
           >
             <div className="dash-tile-head">
               <span className="dash-tile-label">Auditadas</span>
@@ -513,7 +595,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
           <button
             type="button"
             className={`dash-tile t-crit ${dashFilter === 'crit' ? 'active' : ''}`}
-            onClick={() => setDashFilter(dashFilter === 'crit' ? 'all' : 'crit')}
+            onClick={(e) => handleTileClick('crit', e)}
           >
             <div className="dash-tile-head">
               <span className="dash-tile-label">Críticas</span>
@@ -549,7 +631,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
           <button
             type="button"
             className={`dash-tile t-rev ${dashFilter === 'rev' ? 'active' : ''}`}
-            onClick={() => setDashFilter(dashFilter === 'rev' ? 'all' : 'rev')}
+            onClick={(e) => handleTileClick('rev', e)}
           >
             <div className="dash-tile-head">
               <span className="dash-tile-label">Para revisión</span>
@@ -585,7 +667,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
           <button
             type="button"
             className={`dash-tile t-ok ${dashFilter === 'ok' ? 'active' : ''}`}
-            onClick={() => setDashFilter(dashFilter === 'ok' ? 'all' : 'ok')}
+            onClick={(e) => handleTileClick('ok', e)}
           >
             <div className="dash-tile-head">
               <span className="dash-tile-label">Aprobado</span>
@@ -621,7 +703,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
           <button
             type="button"
             className={`dash-tile t-none ${dashFilter === 'none' ? 'active' : ''}`}
-            onClick={() => setDashFilter(dashFilter === 'none' ? 'all' : 'none')}
+            onClick={(e) => handleTileClick('none', e)}
           >
             <div className="dash-tile-head">
               <span className="dash-tile-label">Sin auditar</span>
@@ -709,8 +791,8 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
 
       {/* Contenedor Medio: Tiendas Auditadas (Críticas, Para revisión, OK) */}
       {auditedGroups.length > 0 && dashFilter !== 'none' && (
-        <section className="dash-audits-card card" aria-label="Tiendas auditadas por estado">
-          <div className="dash-status-sections">
+        <section ref={auditsContainerRef} className="dash-audits-card card" aria-label="Tiendas auditadas por estado">
+          <div key={dashFilter} className="dash-status-sections dash-filter-enter">
             {auditedGroups.map((group, gIdx) => {
               const items = storeStatusList
                 .filter(x => x.status === group.key)
@@ -819,10 +901,10 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) =
 
       {/* Contenedor Unificado: Sin Auditar y Rendimiento por Supervisora */}
       {((dashFilter === 'all' || dashFilter === 'none') || supervisorStats.length > 0) && (
-        <section className="dash-bottom-card card" aria-label="Sin auditar y rendimiento por supervisora">
+        <section ref={bottomContainerRef} className="dash-bottom-card card" aria-label="Sin auditar y rendimiento por supervisora">
           {/* Bloque: Sin Auditar */}
           {(dashFilter === 'all' || dashFilter === 'none') && (
-            <div className="dash-group-section" style={{ marginBottom: 0 }}>
+            <div key={`none-${dashFilter}`} className="dash-group-section dash-filter-enter" style={{ marginBottom: 0 }}>
               <div className="dash-group-header">
                 <h3 style={{ color: 'var(--fg-muted)' }}>SIN AUDITAR</h3>
                 <span className="dash-group-count num">
