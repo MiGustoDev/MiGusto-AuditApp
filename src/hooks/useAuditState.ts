@@ -20,9 +20,28 @@ const getInitialState = (mode: AuditMode): AuditState => {
     const raw = localStorage.getItem(key) || (mode === 'normal' ? localStorage.getItem(STORAGE_KEY) : null);
     if (raw) {
       const parsed = JSON.parse(raw);
+      const hasAnswers = Boolean(
+        parsed.answers && Object.values(parsed.answers).some((a: any) => a && (a.s === 'ok' || a.s === 'no' || a.s === 'na' || a.s === 'partial'))
+      );
+      const hasStore = Boolean(parsed.fields?.f_tienda?.trim());
+      const hasProgress = hasAnswers || hasStore;
+
+      if (!hasProgress) {
+        // Si no hay auditoría en curso (sin tienda ni respuestas), no restaurar campos residuales
+        return {
+          answers: {},
+          fields: initialFields,
+          photos: {}
+        };
+      }
+
       return {
         answers: parsed.answers || {},
-        fields: { ...initialFields, ...(parsed.fields || {}), f_fecha: parsed.fields?.f_fecha || getTodayDate() },
+        fields: {
+          ...initialFields,
+          ...(parsed.fields || {}),
+          f_fecha: parsed.fields?.f_fecha || getTodayDate()
+        },
         photos: parsed.photos || {}
       };
     }

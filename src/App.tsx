@@ -58,12 +58,12 @@ export function App() {
   const activeSegments = getSegments(auditMode);
   const totalItemsCount = getTotalItems(auditMode);
 
-  // Auto-fill auditor field with logged-in user name if not filled
+  // Clean up legacy auto-filled auditor if no audit is in progress
   useEffect(() => {
-    if (currentUser && !state.fields.f_auditor) {
-      setField('f_auditor', currentUser.name);
+    if (!state.fields.f_tienda.trim() && summary.done === 0 && state.fields.f_auditor) {
+      setField('f_auditor', '');
     }
-  }, [currentUser, state.fields.f_auditor, setField]);
+  }, []);
 
   const {
     records,
@@ -104,9 +104,6 @@ export function App() {
 
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
-    if (!state.fields.f_auditor) {
-      setField('f_auditor', user.name);
-    }
   };
 
   const handleStartAudit = () => {
