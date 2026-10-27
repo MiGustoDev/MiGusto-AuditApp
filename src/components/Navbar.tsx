@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, Sparkles, LogOut, User as UserIcon, KeyRound, ChevronDown, ShieldCheck, Lock } from 'lucide-react';
+import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, LogOut, User as UserIcon, KeyRound, ChevronDown, ShieldCheck, Lock } from 'lucide-react';
 import { getSegments } from '../data/segments';
 import { AuditSummary } from '../types/audit';
 import { UserProfile, getUserAvatarUrl } from '../lib/auth';
+import { LavaModeSwitcher, LavaViewSwitch } from './LavaSwitcher';
 
 export type ActiveTab = 'audit' | 'summary' | 'history';
 
@@ -175,25 +176,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             onModeChange && (
               <div className="header-center-mode-wrap">
-                <div className="audit-mode-switcher-pill" role="group" aria-label="Tipo de auditoría">
-                  <button
-                    type="button"
-                    className={`mode-btn ${auditMode === 'normal' ? 'active' : ''}`}
-                    onClick={() => onModeChange('normal')}
-                    title="Auditoría Normal Estándar (9 fases)"
-                  >
-                    <span>Normal</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`mode-btn experience ${auditMode === 'experience' ? 'active' : ''}`}
-                    onClick={() => onModeChange('experience')}
-                    title="Auditoría Mi Gusto Experience (12 fases)"
-                  >
-                    <Sparkles size={13} className="mode-sparkle-icon" />
-                    <span>Experience</span>
-                  </button>
-                </div>
+                <LavaModeSwitcher
+                  auditMode={auditMode || 'normal'}
+                  onModeChange={onModeChange}
+                />
               </div>
             )
           )}
@@ -211,35 +197,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
             </button>
 
-            {/* Desktop Navigation: Switch Segmentado Auditoría / Historial */}
+            {/* Desktop Navigation: Switch Segmentado Auditoría / Historial con efecto Lámpara de Lava */}
             <div className="desktop-header-actions">
-              <div className="desktop-view-switch" role="tablist" aria-label="Vista principal">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab !== 'history'}
-                  className={`switch-option-btn ${activeTab !== 'history' ? 'active' : ''}`}
-                  onClick={() => onTabChange('audit')}
-                  title="Auditoría en curso"
-                >
-                  <ClipboardCheck size={15} />
-                  <span>Auditoría</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'history'}
-                  className={`switch-option-btn ${activeTab === 'history' ? 'active' : ''}`}
-                  onClick={() => onTabChange('history')}
-                  title="Historial de auditorías"
-                >
-                  <History size={15} />
-                  <span>Historial</span>
-                  {historyCount > 0 && (
-                    <span className="switch-badge">{historyCount}</span>
-                  )}
-                </button>
-              </div>
+              <LavaViewSwitch
+                activeTab={activeTab}
+                onTabChange={onTabChange}
+                historyCount={historyCount}
+              />
 
               {/* User Profile & Dropdown Trigger */}
               {currentUser && (
