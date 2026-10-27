@@ -8625,3 +8625,297 @@ html, body {
 .c-bad { color: var(--bad) !important; font-weight: 700; }
 .c-warn { color: var(--warn) !important; font-weight: 700; }
 .c-ok { color: var(--ok) !important; font-weight: 700; }
+
+/* ==========================================================================
+   DASHBOARD MOBILE RESPONSIVE TUNING (max-width: 768px and max-width: 420px)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .dashboard-wrapper {
+    width: 100%;
+  }
+
+  /* Overview Card */
+  .dash-overview-card {
+    padding: 14px 12px;
+    gap: 14px;
+    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .dash-title {
+    font-size: 1.4rem;
+    line-height: 1.25;
+    margin-bottom: 2px;
+  }
+
+  .dash-subtitle {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  /* Filters: side-by-side in one line */
+  .dash-filters-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .dash-filter-col {
+    min-width: 0;
+    gap: 4px;
+    flex: unset;
+  }
+
+  .dash-filter-col label {
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+  }
+
+  .dash-select-trigger {
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    gap: 6px;
+  }
+
+  .dash-select-trigger-left {
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .dash-select-trigger-label {
+    font-size: 0.82rem;
+  }
+
+  .dash-select-menu {
+    min-width: 175px;
+  }
+
+  .dash-filter-col:last-child .dash-select-menu {
+    left: auto;
+    right: 0;
+  }
+
+  /* KPI Grid: 2 columns, with Auditadas as top hero card */
+  .dash-tiles-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .dash-tile.t-all {
+    grid-column: 1 / -1;
+  }
+
+  .dash-tile {
+    padding: 12px 14px;
+    gap: 6px;
+    border-radius: var(--radius-md);
+  }
+
+  .dash-tile-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+
+  .dash-tile-icon-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+
+  .dash-tile-icon-badge svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dash-tile-val {
+    font-size: 1.65rem;
+  }
+
+  .dash-tile.t-all .dash-tile-val {
+    font-size: 1.85rem;
+  }
+
+  .dash-tile-denom {
+    font-size: 1rem;
+  }
+
+  .dash-tile-bar-track {
+    height: 4px;
+    margin-top: 3px;
+    margin-bottom: 2px;
+  }
+
+  .dash-tile-foot {
+    font-size: 0.7rem;
+    gap: 4px;
+  }
+
+  .dash-tile-sub {
+    font-size: 0.68rem;
+  }
+
+  .dash-tile-pct {
+    font-size: 0.72rem;
+  }
+
+  /* Coverage block */
+  .dash-coverage-block {
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .dash-coverage-bar {
+    height: 9px;
+    margin-bottom: 10px;
+  }
+
+  .dash-coverage-legend {
+    gap: 6px 12px;
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+  }
+
+  .dash-threshold-notes {
+    font-size: 0.72rem;
+    line-height: 1.4;
+    gap: 4px 10px;
+  }
+
+  /* Audited Stores Card */
+  .dash-audits-card {
+    padding: 14px 12px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .dash-status-sections {
+    gap: 18px;
+  }
+
+  .dash-group-section {
+    gap: 10px;
+  }
+
+  .dash-group-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .dash-group-count {
+    font-size: 0.78rem;
+  }
+
+  .dash-stores-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .dash-store-card {
+    padding: 12px 14px;
+    gap: 8px;
+    border-radius: var(--radius-md);
+  }
+
+  .dash-store-name {
+    font-size: 0.96rem;
+  }
+
+  .dash-store-sup {
+    font-size: 0.75rem;
+  }
+
+  .dash-store-score {
+    font-size: 1.45rem;
+  }
+
+  .dash-store-meta {
+    font-size: 0.74rem;
+    gap: 3px;
+  }
+
+  .dash-store-devs {
+    font-size: 0.75rem;
+    padding-left: 14px;
+    gap: 3px;
+  }
+
+  .dash-group-divider {
+    margin-top: 18px;
+  }
+
+  /* Bottom Card (Sin Auditar y Rendimiento) */
+  .dash-bottom-card {
+    padding: 14px 12px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    gap: 16px;
+    border-radius: var(--radius-md);
+  }
+
+  .dash-none-grid {
+    gap: 6px;
+  }
+
+  .dash-none-chip {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+  }
+
+  .dash-sub-heading {
+    font-size: 1.1rem;
+  }
+
+  /* Supervisor Table horizontally scrollable */
+  .dash-table-wrap {
+    border-radius: var(--radius-md);
+  }
+
+  .dash-sup-table {
+    min-width: 540px;
+  }
+
+  .dash-sup-table th,
+  .dash-sup-table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .dash-sup-table th {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .dash-overview-card,
+  .dash-audits-card,
+  .dash-bottom-card {
+    padding: 12px 10px;
+  }
+
+  .dash-title {
+    font-size: 1.3rem;
+  }
+
+  .dash-tile {
+    padding: 10px 12px;
+  }
+
+  .dash-tile-val {
+    font-size: 1.45rem;
+  }
+
+  .dash-tile.t-all .dash-tile-val {
+    font-size: 1.65rem;
+  }
+
+  .dash-store-card {
+    padding: 10px 12px;
+  }
+
+  .dash-store-score {
+    font-size: 1.35rem;
+  }
+}
