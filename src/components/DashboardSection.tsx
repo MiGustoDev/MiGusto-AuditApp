@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   DASHBOARD_SEED, 
   DashboardSeedData, 
@@ -6,7 +6,7 @@ import {
 } from '../data/dashboardSeed';
 import { SavedAuditRecord } from '../types/audit';
 import { f2, fmtDate } from '../utils/formatters';
-import { Search, Upload, X } from 'lucide-react';
+import { Upload, X, Calendar, Users, ChevronDown, Check } from 'lucide-react';
 
 interface DashboardSectionProps {
   records: SavedAuditRecord[];
@@ -52,11 +52,43 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
   const [periodo, setPeriodo] = useState<'mes' | 'mesant' | '3m' | 'todo'>('mes');
   const [selectedSup, setSelectedSup] = useState<string>('');
   const [dashFilter, setDashFilter] = useState<'all' | 'crit' | 'rev' | 'ok' | 'none'>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [toastMsg, setToastMsg] = useState<{ text: string; isErr: boolean } | null>(null);
   const [inspectAudit, setInspectAudit] = useState<SavedAuditRecord | null>(null);
 
+  const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+  const [isSupOpen, setIsSupOpen] = useState(false);
+
+  const periodDropdownRef = useRef<HTMLDivElement>(null);
+  const supDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (periodDropdownRef.current && !periodDropdownRef.current.contains(e.target as Node)) {
+        setIsPeriodOpen(false);
+      }
+      if (supDropdownRef.current && !supDropdownRef.current.contains(e.target as Node)) {
+        setIsSupOpen(false);
+      }
+    }
+    if (isPeriodOpen || isSupOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isPeriodOpen, isSupOpen]);
+
+  // Close dropdowns on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsPeriodOpen(false);
+        setIsSupOpen(false);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const showToast = (text: string, isErr = false) => {
     setToastMsg({ text, isErr });
@@ -251,195 +283,282 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
   // Filtered stores to display
   const displayedGroups = groups.filter(g => dashFilter === 'all' || dashFilter === g.key);
 
-  // Search filtered list for the bottom history audit list
-  const historyList = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    if (!q) return periodFilteredRecords;
-    return periodFilteredRecords.filter(
-      r => (r.tienda || '').toLowerCase().includes(q) || (r.auditor || '').toLowerCase().includes(q)
-    );
-  }, [periodFilteredRecords, searchTerm]);
+  const PERIOD_OPTIONS = [
+    { id: 'mes', label: 'Este mes' },
+    { id: 'mesant', label: 'Mes anterior' },
+    { id: '3m', label: 'Últimos 3 meses' },
+    { id: 'todo', label: 'Todo el historial' },
+  ] as const;
 
   return (
     <div className="dashboard-wrapper">
-      {/* Dashboard Top Header */}
-      <div className="dash-header-row">
-        <div>
-          <h2 className="dash-title">Dashboard de Auditorías</h2>
-          <p className="dash-subtitle">
-            Estado de cada tienda según su última auditoría: críticas, para revisión, OK y sin auditar.
-          </p>
+      {/* Primer Sección Unificada en un solo contenedor Card */}
+      <section className="dash-overview-card card" aria-label="Resumen de Dashboard">
+        {/* Dashboard Top Header */}
+        <div className="dash-header-row">
+          <div>
+            <h2 className="dash-title">Dashboard de Auditorías</h2>
+            <p className="dash-subtitle">
+              Estado de cada tienda según su última auditoría: críticas, para revisión, OK y sin auditar.
+            </p>
+          </div>
+
+          {/* Action Buttons: Load JSON & Export */}
+          <div className="dash-actions-row">
+            <label className="btn-dash-action" htmlFor="dashFileIn" title="Cargar archivo .json con auditorías">
+              <Upload size={14} />
+              <span>Cargar datos (.json)</span>
+            </label>
+            <input
+              id="dashFileIn"
+              type="file"
+              accept=".json,application/json"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+          </div>
         </div>
 
-        {/* Action Buttons: Load JSON & Export */}
-        <div className="dash-actions-row">
-          <label className="btn-dash-action" htmlFor="dashFileIn" title="Cargar archivo .json con auditorías">
-            <Upload size={14} />
-            <span>Cargar datos (.json)</span>
-          </label>
-          <input
-            id="dashFileIn"
-            type="file"
-            accept=".json,application/json"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
-        </div>
-      </div>
+        {toastMsg && (
+          <div className={`dash-toast-banner ${toastMsg.isErr ? 'err' : 'ok'}`} role="status">
+            {toastMsg.text}
+          </div>
+        )}
 
-      {toastMsg && (
-        <div className={`dash-toast-banner ${toastMsg.isErr ? 'err' : 'ok'}`} role="status">
-          {toastMsg.text}
-        </div>
-      )}
+        {/* Filter Bar: Periodo y Supervisora con desplegables estilizados */}
+        <div className="dash-filters-row">
+          {/* Desplegable Período */}
+          <div className="dash-filter-col">
+            <label id="dPeriodoLabel">Período</label>
+            <div className="dash-filter-dropdown-wrapper" ref={periodDropdownRef}>
+              <button
+                type="button"
+                className={`dash-select-trigger ${isPeriodOpen ? 'is-open' : ''}`}
+                onClick={() => {
+                  setIsPeriodOpen(prev => !prev);
+                  setIsSupOpen(false);
+                }}
+                aria-expanded={isPeriodOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="dPeriodoLabel"
+              >
+                <div className="dash-select-trigger-left">
+                  <Calendar size={15} className="dash-select-icon" />
+                  <span className="dash-select-trigger-label">
+                    {PERIOD_OPTIONS.find(p => p.id === periodo)?.label || 'Este mes'}
+                  </span>
+                </div>
+                <ChevronDown size={14} className={`dash-select-chevron ${isPeriodOpen ? 'rotate' : ''}`} />
+              </button>
 
-      {/* Filter Bar: Periodo y Supervisora */}
-      <div className="dash-filters-bar card">
-        <div className="dash-filter-col">
-          <label htmlFor="dPeriodo">Período</label>
-          <select
-            id="dPeriodo"
-            value={periodo}
-            onChange={e => setPeriodo(e.target.value as any)}
-            className="dash-select"
+              {isPeriodOpen && (
+                <div className="dash-select-menu" role="listbox">
+                  {PERIOD_OPTIONS.map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="option"
+                      aria-selected={periodo === opt.id}
+                      className={`dash-select-item ${periodo === opt.id ? 'is-selected' : ''}`}
+                      onClick={() => {
+                        setPeriodo(opt.id);
+                        setIsPeriodOpen(false);
+                      }}
+                    >
+                      <span className="dash-select-item-text">{opt.label}</span>
+                      {periodo === opt.id && <Check size={14} className="selected-check" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Desplegable Supervisora */}
+          <div className="dash-filter-col">
+            <label id="dSupLabel">Supervisora</label>
+            <div className="dash-filter-dropdown-wrapper" ref={supDropdownRef}>
+              <button
+                type="button"
+                className={`dash-select-trigger ${isSupOpen ? 'is-open' : ''} ${selectedSup ? 'has-filter' : ''}`}
+                onClick={() => {
+                  setIsSupOpen(prev => !prev);
+                  setIsPeriodOpen(false);
+                }}
+                aria-expanded={isSupOpen}
+                aria-haspopup="listbox"
+                aria-labelledby="dSupLabel"
+              >
+                <div className="dash-select-trigger-left">
+                  {selectedSup ? (
+                    <i className="dash-dot" style={{ background: supColorById(selectedSup), marginRight: '4px' }} />
+                  ) : (
+                    <Users size={15} className="dash-select-icon" />
+                  )}
+                  <span className="dash-select-trigger-label">
+                    {selectedSup ? supNameById(selectedSup) : 'Todas'}
+                  </span>
+                </div>
+                <ChevronDown size={14} className={`dash-select-chevron ${isSupOpen ? 'rotate' : ''}`} />
+              </button>
+
+              {isSupOpen && (
+                <div className="dash-select-menu" role="listbox" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selectedSup === ''}
+                    className={`dash-select-item ${selectedSup === '' ? 'is-selected' : ''}`}
+                    onClick={() => {
+                      setSelectedSup('');
+                      setIsSupOpen(false);
+                    }}
+                  >
+                    <div className="dash-select-item-left">
+                      <Users size={13} style={{ opacity: 0.7 }} />
+                      <span className="dash-select-item-text">Todas las supervisoras</span>
+                    </div>
+                    {selectedSup === '' && <Check size={14} className="selected-check" />}
+                  </button>
+
+                  {seedData.config.supervisoras
+                    .filter(s => seedData.config.tiendas.some(t => t.sup === s.id))
+                    .map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedSup === s.id}
+                        className={`dash-select-item ${selectedSup === s.id ? 'is-selected' : ''}`}
+                        onClick={() => {
+                          setSelectedSup(s.id);
+                          setIsSupOpen(false);
+                        }}
+                      >
+                        <div className="dash-select-item-left">
+                          <i className="dash-dot" style={{ background: supColorById(s.id) }} />
+                          <span className="dash-select-item-text">{s.name}</span>
+                        </div>
+                        {selectedSup === s.id && <Check size={14} className="selected-check" />}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* KPI Tiles */}
+        <div className="dash-tiles-grid">
+          <button
+            type="button"
+            className={`dash-tile t-all ${dashFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setDashFilter('all')}
           >
-            <option value="mes">Este mes</option>
-            <option value="mesant">Mes anterior</option>
-            <option value="3m">Últimos 3 meses</option>
-            <option value="todo">Todo el historial</option>
-          </select>
-        </div>
+            <span className="dash-tile-label">Auditadas</span>
+            <b className="dash-tile-val num">
+              {counts.audited}
+              <small>/ {counts.totalStores}</small>
+            </b>
+            <span className="dash-tile-sub">
+              {counts.totalStores ? `${counts.auditedPct}% de las tiendas` : 'Sin tiendas'}
+            </span>
+          </button>
 
-        <div className="dash-filter-col">
-          <label htmlFor="dSup">Supervisora</label>
-          <select
-            id="dSup"
-            value={selectedSup}
-            onChange={e => setSelectedSup(e.target.value)}
-            className="dash-select"
+          <button
+            type="button"
+            className={`dash-tile t-crit ${dashFilter === 'crit' ? 'active' : ''}`}
+            onClick={() => setDashFilter(dashFilter === 'crit' ? 'all' : 'crit')}
           >
-            <option value="">Todas</option>
-            {seedData.config.supervisoras
-              .filter(s => seedData.config.tiendas.some(t => t.sup === s.id))
-              .map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-          </select>
+            <span className="dash-tile-label">Críticas</span>
+            <b className="dash-tile-val num">{counts.crit}</b>
+            <span className="dash-tile-sub">menos de {THR.critica} o ítem 2.6</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dash-tile t-rev ${dashFilter === 'rev' ? 'active' : ''}`}
+            onClick={() => setDashFilter(dashFilter === 'rev' ? 'all' : 'rev')}
+          >
+            <span className="dash-tile-label">Para revisión</span>
+            <b className="dash-tile-val num">{counts.rev}</b>
+            <span className="dash-tile-sub">de {THR.critica} a {f2(THR.ok - 0.01)}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dash-tile t-ok ${dashFilter === 'ok' ? 'active' : ''}`}
+            onClick={() => setDashFilter(dashFilter === 'ok' ? 'all' : 'ok')}
+          >
+            <span className="dash-tile-label">OK</span>
+            <b className="dash-tile-val num">{counts.ok}</b>
+            <span className="dash-tile-sub">{THR.ok} puntos o más</span>
+          </button>
+
+          <button
+            type="button"
+            className={`dash-tile t-none ${dashFilter === 'none' ? 'active' : ''}`}
+            onClick={() => setDashFilter(dashFilter === 'none' ? 'all' : 'none')}
+          >
+            <span className="dash-tile-label">Sin auditar</span>
+            <b className="dash-tile-val num">{counts.none}</b>
+            <span className="dash-tile-sub">en el período</span>
+          </button>
         </div>
-      </div>
 
-      {/* KPI Tiles */}
-      <div className="dash-tiles-grid">
-        <button
-          type="button"
-          className={`dash-tile t-all ${dashFilter === 'all' ? 'active' : ''}`}
-          onClick={() => setDashFilter('all')}
-        >
-          <span className="dash-tile-label">Auditadas</span>
-          <b className="dash-tile-val num">
-            {counts.audited}
-            <small>/ {counts.totalStores}</small>
-          </b>
-          <span className="dash-tile-sub">
-            {counts.totalStores ? `${counts.auditedPct}% de las tiendas` : 'Sin tiendas'}
-          </span>
-        </button>
+        {/* Coverage Progress Bar & Legend */}
+        {counts.totalStores > 0 && (
+          <div className="dash-coverage-block">
+            <div className="dash-coverage-bar" role="img" aria-label="Distribución de auditorías">
+              <span
+                style={{
+                  width: `${(counts.crit / counts.totalStores) * 100}%`,
+                  background: 'var(--bad)'
+                }}
+              />
+              <span
+                style={{
+                  width: `${(counts.rev / counts.totalStores) * 100}%`,
+                  background: 'var(--warn)'
+                }}
+              />
+              <span
+                style={{
+                  width: `${(counts.ok / counts.totalStores) * 100}%`,
+                  background: 'var(--ok)'
+                }}
+              />
+            </div>
 
-        <button
-          type="button"
-          className={`dash-tile t-crit ${dashFilter === 'crit' ? 'active' : ''}`}
-          onClick={() => setDashFilter(dashFilter === 'crit' ? 'all' : 'crit')}
-        >
-          <span className="dash-tile-label">Críticas</span>
-          <b className="dash-tile-val num">{counts.crit}</b>
-          <span className="dash-tile-sub">menos de {THR.critica} o ítem 2.6</span>
-        </button>
+            <div className="dash-coverage-legend num">
+              <span>
+                <i className="dash-dot" style={{ background: 'var(--bad)' }} />
+                Críticas <b>{counts.crit}</b>
+              </span>
+              <span>
+                <i className="dash-dot" style={{ background: 'var(--warn)' }} />
+                Revisión <b>{counts.rev}</b>
+              </span>
+              <span>
+                <i className="dash-dot" style={{ background: 'var(--ok)' }} />
+                OK <b>{counts.ok}</b>
+              </span>
+              <span>
+                <i className="dash-dot" style={{ background: 'var(--surface-3)', border: '1px solid var(--line-strong)' }} />
+                Sin auditar <b>{counts.none}</b>
+              </span>
+            </div>
 
-        <button
-          type="button"
-          className={`dash-tile t-rev ${dashFilter === 'rev' ? 'active' : ''}`}
-          onClick={() => setDashFilter(dashFilter === 'rev' ? 'all' : 'rev')}
-        >
-          <span className="dash-tile-label">Para revisión</span>
-          <b className="dash-tile-val num">{counts.rev}</b>
-          <span className="dash-tile-sub">de {THR.critica} a {f2(THR.ok - 0.01)}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`dash-tile t-ok ${dashFilter === 'ok' ? 'active' : ''}`}
-          onClick={() => setDashFilter(dashFilter === 'ok' ? 'all' : 'ok')}
-        >
-          <span className="dash-tile-label">OK</span>
-          <b className="dash-tile-val num">{counts.ok}</b>
-          <span className="dash-tile-sub">{THR.ok} puntos o más</span>
-        </button>
-
-        <button
-          type="button"
-          className={`dash-tile t-none ${dashFilter === 'none' ? 'active' : ''}`}
-          onClick={() => setDashFilter(dashFilter === 'none' ? 'all' : 'none')}
-        >
-          <span className="dash-tile-label">Sin auditar</span>
-          <b className="dash-tile-val num">{counts.none}</b>
-          <span className="dash-tile-sub">en el período</span>
-        </button>
-      </div>
-
-      {/* Coverage Progress Bar & Legend */}
-      {counts.totalStores > 0 && (
-        <div className="dash-coverage-card card">
-          <div className="dash-coverage-bar" role="img" aria-label="Distribución de auditorías">
-            <span
-              style={{
-                width: `${(counts.crit / counts.totalStores) * 100}%`,
-                background: 'var(--bad)'
-              }}
-            />
-            <span
-              style={{
-                width: `${(counts.rev / counts.totalStores) * 100}%`,
-                background: 'var(--warn)'
-              }}
-            />
-            <span
-              style={{
-                width: `${(counts.ok / counts.totalStores) * 100}%`,
-                background: 'var(--ok)'
-              }}
-            />
+            <div className="dash-threshold-notes">
+              <span>Se toma la última auditoría de cada tienda en el período.</span>
+              <span><b style={{ color: 'var(--ok)' }}>OK</b>: {THR.ok} o más</span>
+              <span><b style={{ color: 'var(--warn)' }}>Revisión</b>: {THR.critica} a {f2(THR.ok - 0.01)}</span>
+              <span><b style={{ color: 'var(--bad)' }}>Crítica</b>: menos de {THR.critica} o falla ítem 2.6</span>
+            </div>
           </div>
-
-          <div className="dash-coverage-legend num">
-            <span>
-              <i className="dash-dot" style={{ background: 'var(--bad)' }} />
-              Críticas <b>{counts.crit}</b>
-            </span>
-            <span>
-              <i className="dash-dot" style={{ background: 'var(--warn)' }} />
-              Revisión <b>{counts.rev}</b>
-            </span>
-            <span>
-              <i className="dash-dot" style={{ background: 'var(--ok)' }} />
-              OK <b>{counts.ok}</b>
-            </span>
-            <span>
-              <i className="dash-dot" style={{ background: 'var(--surface-3)', border: '1px solid var(--line-strong)' }} />
-              Sin auditar <b>{counts.none}</b>
-            </span>
-          </div>
-
-          <div className="dash-threshold-notes">
-            <span>Se toma la última auditoría de cada tienda en el período.</span>
-            <span><b style={{ color: 'var(--ok)' }}>OK</b>: {THR.ok} o más</span>
-            <span><b style={{ color: 'var(--warn)' }}>Revisión</b>: {THR.critica} a {f2(THR.ok - 0.01)}</span>
-            <span><b style={{ color: 'var(--bad)' }}>Crítica</b>: menos de {THR.critica} o falla ítem 2.6</span>
-          </div>
-        </div>
-      )}
+        )}
+      </section>
 
       {/* Store Cards by Status */}
       <div className="dash-status-sections">
@@ -612,71 +731,6 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* Historial rápido integrado */}
-      <div className="dash-section-divider" style={{ marginTop: '36px' }}>
-        <h3 className="dash-sub-heading">Auditorías del Período ({historyList.length})</h3>
-      </div>
-
-      <div className="dash-search-row">
-        <div className="search-input-wrapper">
-          <Search size={16} className="search-icon" />
-          <input
-            type="search"
-            placeholder="Buscar por tienda o auditor en el período..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="dash-history-list">
-        {historyList.length === 0 ? (
-          <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--fg-muted)' }}>
-            No se encontraron auditorías para los filtros seleccionados.
-          </div>
-        ) : (
-          historyList.map(r => {
-            const st = getRecordStatus(r);
-            const statusLabel = st === 'crit' ? 'Crítica' : st === 'rev' ? 'Revisión' : 'Aprobada';
-            const statusClass = st === 'crit' ? 'bad' : st === 'rev' ? 'warn' : 'ok';
-
-            return (
-              <div key={r._id || `${r.fecha}-${r.tienda}`} className="dash-history-item card">
-                <div className="dash-history-item-main">
-                  <div>
-                    <h4 className="dash-history-store-name">{r.tienda}</h4>
-                    <span className="dash-history-meta num">
-                      {fmtDate(r.fecha)} · {r.auditor || 'Sin auditor'} · {r.auditMode === 'experience' ? '✨ Experience' : 'Normal'}
-                    </span>
-                  </div>
-
-                  <div className="dash-history-score-wrap">
-                    <span className={`dash-history-score num ${statusClass}`}>{f2(r.total)}</span>
-                    <span className={`dash-history-chip ${statusClass}`}>{statusLabel}</span>
-                  </div>
-                </div>
-
-                <div className="dash-history-item-footer">
-                  <span className="num" style={{ fontSize: '0.8rem', color: 'var(--fg-muted)' }}>
-                    Desvíos: {r.desvios?.length || 0}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-dash-open sm"
-                    onClick={() => {
-                      if (onSelectAudit) onSelectAudit(r);
-                      else setInspectAudit(r);
-                    }}
-                  >
-                    Ver detalles
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
       </div>
 
       {/* Modal to inspect audit details */}

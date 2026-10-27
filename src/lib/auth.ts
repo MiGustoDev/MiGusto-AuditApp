@@ -136,18 +136,8 @@ export function canUserDeleteAudits(user: UserProfile | null): boolean {
   );
 }
 
-export function canUserAccessDashboard(user: UserProfile | null): boolean {
-  if (!user) return false;
-  const email = (user.email || '').toLowerCase().trim();
-  const name = (user.name || '').toLowerCase().trim();
-  return (
-    email === 'admin@migusto.com.ar' ||
-    email === 'mariasalazar@migusto.com.ar' ||
-    email === 'elizabethcolman@migusto.com.ar' ||
-    name.includes('administra') ||
-    name.includes('salazar') ||
-    name.includes('colman')
-  );
+export function canUserAccessDashboard(_user?: UserProfile | null): boolean {
+  return true;
 }
 
 const SESSION_KEY = 'migusto_audit_session_v1';

@@ -164,7 +164,7 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
   activeTab,
   onTabChange,
   historyCount,
-  canAccessDashboard
+  canAccessDashboard = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const blobRef = useRef<HTMLDivElement>(null);
