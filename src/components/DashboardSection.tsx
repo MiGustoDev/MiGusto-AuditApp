@@ -6,7 +6,18 @@ import {
 } from '../data/dashboardSeed';
 import { SavedAuditRecord } from '../types/audit';
 import { f2, fmtDate } from '../utils/formatters';
-import { Upload, X, Calendar, Users, ChevronDown, Check } from 'lucide-react';
+import gsap from 'gsap';
+import { 
+  Calendar, 
+  Users, 
+  ChevronDown, 
+  Check, 
+  ClipboardCheck, 
+  AlertTriangle, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock 
+} from 'lucide-react';
 
 interface DashboardSectionProps {
   records: SavedAuditRecord[];
@@ -37,8 +48,62 @@ function normalizeName(s: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onSelectAudit }) => {
-  const [seedData, setSeedData] = useState<DashboardSeedData>(() => {
+interface AnimatedCounterProps {
+  value: number;
+  decimals?: number;
+  duration?: number;
+  className?: string;
+  prefix?: string;
+  suffix?: string;
+}
+
+const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
+  value,
+  decimals = 0,
+  duration = 0.9,
+  className = '',
+  prefix = '',
+  suffix = ''
+}) => {
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const prevValRef = useRef<number>(0);
+
+  useEffect(() => {
+    const el = spanRef.current;
+    if (!el) return;
+
+    const startVal = prevValRef.current;
+    const endVal = isNaN(value) ? 0 : value;
+
+    const proxy = { val: startVal };
+    el.textContent = `${prefix}${decimals > 0 ? startVal.toFixed(decimals) : Math.round(startVal)}${suffix}`;
+
+    const tween = gsap.to(proxy, {
+      val: endVal,
+      duration,
+      ease: 'power2.out',
+      onUpdate: () => {
+        if (el) {
+          el.textContent = `${prefix}${decimals > 0 ? proxy.val.toFixed(decimals) : Math.round(proxy.val)}${suffix}`;
+        }
+      }
+    });
+
+    prevValRef.current = endVal;
+    return () => {
+      tween.kill();
+    };
+  }, [value, decimals, duration, prefix, suffix]);
+
+  return (
+    <span ref={spanRef} className={className}>
+      {prefix}{decimals > 0 ? '0.00' : '0'}{suffix}
+    </span>
+  );
+};
+
+export const DashboardSection: React.FC<DashboardSectionProps> = ({ records }) => {
+  const [seedData] = useState<DashboardSeedData>(() => {
     try {
       const saved = localStorage.getItem('dashboard-auditorias-datos');
       if (saved) {
@@ -52,15 +117,12 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
   const [periodo, setPeriodo] = useState<'mes' | 'mesant' | '3m' | 'todo'>('mes');
   const [selectedSup, setSelectedSup] = useState<string>('');
   const [dashFilter, setDashFilter] = useState<'all' | 'crit' | 'rev' | 'ok' | 'none'>('all');
-  const [toastMsg, setToastMsg] = useState<{ text: string; isErr: boolean } | null>(null);
-  const [inspectAudit, setInspectAudit] = useState<SavedAuditRecord | null>(null);
 
   const [isPeriodOpen, setIsPeriodOpen] = useState(false);
   const [isSupOpen, setIsSupOpen] = useState(false);
 
   const periodDropdownRef = useRef<HTMLDivElement>(null);
   const supDropdownRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -89,33 +151,6 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const showToast = (text: string, isErr = false) => {
-    setToastMsg({ text, isErr });
-    setTimeout(() => setToastMsg(null), 4000);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result as string);
-        if (!parsed || !parsed.config || !Array.isArray(parsed.config.tiendas)) {
-          throw new Error('Formato inválido');
-        }
-        setSeedData(parsed);
-        localStorage.setItem('dashboard-auditorias-datos', JSON.stringify(parsed));
-        showToast(`Datos cargados correctamente: ${parsed.auditorias?.length || 0} auditorías.`);
-      } catch (err) {
-        showToast('El archivo no tiene el formato de exportación esperado.', true);
-      }
-    };
-    reader.readAsText(file);
-  };
 
   const THR = seedData.umbrales || { critica: 70, ok: 85 };
 
@@ -276,7 +311,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
   const groups: Array<{ key: 'crit' | 'rev' | 'ok' | 'none'; label: string; color: string; borderVar: string }> = [
     { key: 'crit', label: 'Críticas', color: 'var(--bad)', borderVar: 'var(--bad)' },
     { key: 'rev', label: 'Para revisión', color: 'var(--warn)', borderVar: 'var(--warn)' },
-    { key: 'ok', label: 'OK', color: 'var(--ok)', borderVar: 'var(--ok)' },
+    { key: 'ok', label: 'Aprobado', color: 'var(--ok)', borderVar: 'var(--ok)' },
     { key: 'none', label: 'Sin auditar', color: 'var(--fg-muted)', borderVar: 'var(--line)' }
   ];
 
@@ -309,32 +344,10 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
           <div>
             <h2 className="dash-title">Dashboard de Auditorías</h2>
             <p className="dash-subtitle">
-              Estado de cada tienda según su última auditoría: críticas, para revisión, OK y sin auditar.
+              Estado de cada tienda según su última auditoría: críticas, para revisión, aprobado y sin auditar.
             </p>
           </div>
-
-          {/* Action Buttons: Load JSON & Export */}
-          <div className="dash-actions-row">
-            <label className="btn-dash-action" htmlFor="dashFileIn" title="Cargar archivo .json con auditorías">
-              <Upload size={14} />
-              <span>Cargar datos (.json)</span>
-            </label>
-            <input
-              id="dashFileIn"
-              type="file"
-              accept=".json,application/json"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              style={{ display: 'none' }}
-            />
-          </div>
         </div>
-
-        {toastMsg && (
-          <div className={`dash-toast-banner ${toastMsg.isErr ? 'err' : 'ok'}`} role="status">
-            {toastMsg.text}
-          </div>
-        )}
 
         {/* Filter Bar: Periodo y Supervisora con desplegables estilizados */}
         <div className="dash-filters-row">
@@ -461,59 +474,183 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
 
         {/* KPI Tiles */}
         <div className="dash-tiles-grid">
+          {/* Auditadas */}
           <button
             type="button"
             className={`dash-tile t-all ${dashFilter === 'all' ? 'active' : ''}`}
             onClick={() => setDashFilter('all')}
           >
-            <span className="dash-tile-label">Auditadas</span>
-            <b className="dash-tile-val num">
-              {counts.audited}
-              <small>/ {counts.totalStores}</small>
-            </b>
-            <span className="dash-tile-sub">
-              {counts.totalStores ? `${counts.auditedPct}% de las tiendas` : 'Sin tiendas'}
-            </span>
+            <div className="dash-tile-head">
+              <span className="dash-tile-label">Auditadas</span>
+              <div className="dash-tile-icon-badge t-all">
+                <ClipboardCheck size={16} />
+              </div>
+            </div>
+
+            <div className="dash-tile-main">
+              <span className="dash-tile-val num">
+                <AnimatedCounter value={counts.audited} />
+              </span>
+              <span className="dash-tile-denom num">/{counts.totalStores}</span>
+            </div>
+
+            <div className="dash-tile-bar-track">
+              <div
+                className="dash-tile-bar-fill t-all"
+                style={{ width: `${counts.auditedPct}%` }}
+              />
+            </div>
+
+            <div className="dash-tile-foot">
+              <span className="dash-tile-sub">
+                {counts.totalStores ? 'de las tiendas' : 'Sin tiendas'}
+              </span>
+              <span className="dash-tile-pct num">{counts.auditedPct}%</span>
+            </div>
           </button>
 
+          {/* Críticas */}
           <button
             type="button"
             className={`dash-tile t-crit ${dashFilter === 'crit' ? 'active' : ''}`}
             onClick={() => setDashFilter(dashFilter === 'crit' ? 'all' : 'crit')}
           >
-            <span className="dash-tile-label">Críticas</span>
-            <b className="dash-tile-val num">{counts.crit}</b>
-            <span className="dash-tile-sub">menos de {THR.critica} o ítem 2.6</span>
+            <div className="dash-tile-head">
+              <span className="dash-tile-label">Críticas</span>
+              <div className="dash-tile-icon-badge t-crit">
+                <AlertTriangle size={16} />
+              </div>
+            </div>
+
+            <div className="dash-tile-main">
+              <span className="dash-tile-val num">
+                <AnimatedCounter value={counts.crit} />
+              </span>
+            </div>
+
+            <div className="dash-tile-bar-track">
+              <div
+                className="dash-tile-bar-fill t-crit"
+                style={{
+                  width: `${counts.totalStores ? (counts.crit / counts.totalStores) * 100 : 0}%`
+                }}
+              />
+            </div>
+
+            <div className="dash-tile-foot">
+              <span className="dash-tile-sub">menos de {THR.critica} o ítem 2.6</span>
+              <span className="dash-tile-pct num">
+                {counts.totalStores ? Math.round((counts.crit / counts.totalStores) * 100) : 0}%
+              </span>
+            </div>
           </button>
 
+          {/* Para revisión */}
           <button
             type="button"
             className={`dash-tile t-rev ${dashFilter === 'rev' ? 'active' : ''}`}
             onClick={() => setDashFilter(dashFilter === 'rev' ? 'all' : 'rev')}
           >
-            <span className="dash-tile-label">Para revisión</span>
-            <b className="dash-tile-val num">{counts.rev}</b>
-            <span className="dash-tile-sub">de {THR.critica} a {f2(THR.ok - 0.01)}</span>
+            <div className="dash-tile-head">
+              <span className="dash-tile-label">Para revisión</span>
+              <div className="dash-tile-icon-badge t-rev">
+                <AlertCircle size={16} />
+              </div>
+            </div>
+
+            <div className="dash-tile-main">
+              <span className="dash-tile-val num">
+                <AnimatedCounter value={counts.rev} />
+              </span>
+            </div>
+
+            <div className="dash-tile-bar-track">
+              <div
+                className="dash-tile-bar-fill t-rev"
+                style={{
+                  width: `${counts.totalStores ? (counts.rev / counts.totalStores) * 100 : 0}%`
+                }}
+              />
+            </div>
+
+            <div className="dash-tile-foot">
+              <span className="dash-tile-sub">de {THR.critica} a {f2(THR.ok - 0.01)}</span>
+              <span className="dash-tile-pct num">
+                {counts.totalStores ? Math.round((counts.rev / counts.totalStores) * 100) : 0}%
+              </span>
+            </div>
           </button>
 
+          {/* Aprobado */}
           <button
             type="button"
             className={`dash-tile t-ok ${dashFilter === 'ok' ? 'active' : ''}`}
             onClick={() => setDashFilter(dashFilter === 'ok' ? 'all' : 'ok')}
           >
-            <span className="dash-tile-label">OK</span>
-            <b className="dash-tile-val num">{counts.ok}</b>
-            <span className="dash-tile-sub">{THR.ok} puntos o más</span>
+            <div className="dash-tile-head">
+              <span className="dash-tile-label">Aprobado</span>
+              <div className="dash-tile-icon-badge t-ok">
+                <CheckCircle2 size={16} />
+              </div>
+            </div>
+
+            <div className="dash-tile-main">
+              <span className="dash-tile-val num">
+                <AnimatedCounter value={counts.ok} />
+              </span>
+            </div>
+
+            <div className="dash-tile-bar-track">
+              <div
+                className="dash-tile-bar-fill t-ok"
+                style={{
+                  width: `${counts.totalStores ? (counts.ok / counts.totalStores) * 100 : 0}%`
+                }}
+              />
+            </div>
+
+            <div className="dash-tile-foot">
+              <span className="dash-tile-sub">{THR.ok} puntos o más</span>
+              <span className="dash-tile-pct num">
+                {counts.totalStores ? Math.round((counts.ok / counts.totalStores) * 100) : 0}%
+              </span>
+            </div>
           </button>
 
+          {/* Sin auditar */}
           <button
             type="button"
             className={`dash-tile t-none ${dashFilter === 'none' ? 'active' : ''}`}
             onClick={() => setDashFilter(dashFilter === 'none' ? 'all' : 'none')}
           >
-            <span className="dash-tile-label">Sin auditar</span>
-            <b className="dash-tile-val num">{counts.none}</b>
-            <span className="dash-tile-sub">en el período</span>
+            <div className="dash-tile-head">
+              <span className="dash-tile-label">Sin auditar</span>
+              <div className="dash-tile-icon-badge t-none">
+                <Clock size={16} />
+              </div>
+            </div>
+
+            <div className="dash-tile-main">
+              <span className="dash-tile-val num">
+                <AnimatedCounter value={counts.none} />
+              </span>
+            </div>
+
+            <div className="dash-tile-bar-track">
+              <div
+                className="dash-tile-bar-fill t-none"
+                style={{
+                  width: `${counts.totalStores ? (counts.none / counts.totalStores) * 100 : 0}%`
+                }}
+              />
+            </div>
+
+            <div className="dash-tile-foot">
+              <span className="dash-tile-sub">en el período</span>
+              <span className="dash-tile-pct num">
+                {counts.totalStores ? Math.round((counts.none / counts.totalStores) * 100) : 0}%
+              </span>
+            </div>
           </button>
         </div>
 
@@ -552,7 +689,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
               </span>
               <span>
                 <i className="dash-dot" style={{ background: 'var(--ok)' }} />
-                OK <b>{counts.ok}</b>
+                Aprobado <b>{counts.ok}</b>
               </span>
               <span>
                 <i className="dash-dot" style={{ background: 'var(--surface-3)', border: '1px solid var(--line-strong)' }} />
@@ -562,7 +699,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
 
             <div className="dash-threshold-notes">
               <span>Se toma la última auditoría de cada tienda en el período.</span>
-              <span><b style={{ color: 'var(--ok)' }}>OK</b>: {THR.ok} o más</span>
+              <span><b style={{ color: 'var(--ok)' }}>Aprobado</b>: {THR.ok} o más</span>
               <span><b style={{ color: 'var(--warn)' }}>Revisión</b>: {THR.critica} a {f2(THR.ok - 0.01)}</span>
               <span><b style={{ color: 'var(--bad)' }}>Crítica</b>: menos de {THR.critica} o falla ítem 2.6</span>
             </div>
@@ -631,7 +768,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
                             </div>
 
                             <div className={`dash-store-score num ${statusClass}`}>
-                              {f2(r.total)}
+                              <AnimatedCounter value={Number(r.total || 0)} decimals={2} />
                             </div>
                           </div>
 
@@ -668,19 +805,6 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
                               ))}
                             </ul>
                           )}
-
-                          <div className="dash-store-actions">
-                            <button
-                              type="button"
-                              className="btn-dash-open"
-                              onClick={() => {
-                                if (onSelectAudit) onSelectAudit(r);
-                                else setInspectAudit(r);
-                              }}
-                            >
-                              Ver auditoría
-                            </button>
-                          </div>
                         </div>
                       );
                     })}
@@ -743,7 +867,7 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
                       <th>Auditadas</th>
                       <th>Críticas</th>
                       <th>Revisión</th>
-                      <th>OK</th>
+                      <th>Aprobado</th>
                       <th>Sin auditar</th>
                       <th>Promedio</th>
                     </tr>
@@ -774,94 +898,6 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
         </section>
       )}
 
-      {/* Modal to inspect audit details */}
-      {inspectAudit && (
-        <div className="modal-backdrop" onClick={() => setInspectAudit(null)}>
-          <div className="modal-card card" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px' }}>
-            <div className="modal-header">
-              <div>
-                <h3 className="modal-title">{inspectAudit.tienda}</h3>
-                <p className="modal-subtitle">
-                  {fmtDate(inspectAudit.fecha)} · Auditor/a: {inspectAudit.auditor || 'Sin auditor'}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="icon-btn-subtle"
-                onClick={() => setInspectAudit(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <span className="num" style={{ fontSize: '1.8rem', fontWeight: 800 }}>
-                  {f2(inspectAudit.total)} <small style={{ fontSize: '1rem', color: 'var(--fg-muted)' }}>/ 100</small>
-                </span>
-                <span className={`pill ${inspectAudit.total >= 85 ? 'ok' : inspectAudit.total >= 70 ? 'warn' : 'bad'}`}>
-                  {inspectAudit.estado || (inspectAudit.total >= 85 ? 'Aprobada' : 'No aprobada')}
-                </span>
-              </div>
-
-              {/* Segment breakdown */}
-              <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: '8px' }}>
-                Puntaje por fase
-              </h4>
-              <div className="tbl-wrap" style={{ marginBottom: '16px' }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left' }}>Fase</th>
-                      <th>Ideal</th>
-                      <th>Real</th>
-                      <th>%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(inspectAudit.segmentos || []).map((s, sIdx) => (
-                      <tr key={sIdx}>
-                        <td style={{ textAlign: 'left' }}>{s.n}. {s.nombre}</td>
-                        <td className="num">{f2(s.ideal)}</td>
-                        <td className="num">{f2(s.real)}</td>
-                        <td className="num">{s.ideal > 0 ? (s.real / s.ideal * 100).toFixed(0) : '0'}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Deviations */}
-              <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: '8px' }}>
-                Desvíos ({inspectAudit.desvios?.length || 0})
-              </h4>
-              {(!inspectAudit.desvios || inspectAudit.desvios.length === 0) ? (
-                <p style={{ color: 'var(--fg-muted)', fontSize: '0.9rem' }}>Sin desvíos registrados.</p>
-              ) : (
-                <ul className="dash-store-devs" style={{ listStyle: 'none', padding: 0 }}>
-                  {inspectAudit.desvios.map((d, dIdx) => (
-                    <li key={dIdx} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
-                      <b>{d.n}</b> {d.texto}{' '}
-                      <span className="num" style={{ color: 'var(--warn)' }}>({f2(d.real)}/{f2(d.ideal)})</span>
-                      {d.obs && <div style={{ fontSize: '0.8rem', color: 'var(--fg-muted)', marginTop: '2px' }}>Obs: {d.obs}</div>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => setInspectAudit(null)}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
