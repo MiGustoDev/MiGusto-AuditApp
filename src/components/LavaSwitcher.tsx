@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
-import { Sparkles, ClipboardCheck, History } from 'lucide-react';
+import { Sparkles, ClipboardCheck, History, LayoutDashboard } from 'lucide-react';
 import { ActiveTab } from './Navbar';
 
 /* ==========================================================================
@@ -149,7 +149,7 @@ export const LavaModeSwitcher: React.FC<LavaModeSwitcherProps> = ({ auditMode, o
 };
 
 /* ==========================================================================
-   Lava View Switcher (Auditoría vs Historial)
+   Lava View Switcher (Auditoría vs Historial vs Dashboard)
    Mantiene 100% los colores y estilos originales (var(--accent) azul),
    con la física de desplazamiento líquido estilo lámpara de lava.
    ========================================================================== */
@@ -157,25 +157,33 @@ interface LavaViewSwitchProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
   historyCount: number;
+  canAccessDashboard?: boolean;
 }
 
 export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
   activeTab,
   onTabChange,
-  historyCount
+  historyCount,
+  canAccessDashboard
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const blobRef = useRef<HTMLDivElement>(null);
 
   const auditBtnRef = useRef<HTMLButtonElement>(null);
   const historyBtnRef = useRef<HTMLButtonElement>(null);
+  const dashBtnRef = useRef<HTMLButtonElement>(null);
 
   const isInitialRef = useRef(true);
-  const isHistory = activeTab === 'history';
-  const prevIsHistoryRef = useRef(isHistory);
+  const prevTabRef = useRef(activeTab);
+
+  const getTargetBtn = (tab: ActiveTab): HTMLButtonElement | null => {
+    if (tab === 'history') return historyBtnRef.current;
+    if (tab === 'dashboard') return dashBtnRef.current;
+    return auditBtnRef.current;
+  };
 
   useEffect(() => {
-    const targetBtn = !isHistory ? auditBtnRef.current : historyBtnRef.current;
+    const targetBtn = getTargetBtn(activeTab);
     if (!targetBtn || !blobRef.current || !containerRef.current) return;
 
     const targetLeft = targetBtn.offsetLeft;
@@ -185,7 +193,7 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
 
     if (isInitialRef.current) {
       isInitialRef.current = false;
-      prevIsHistoryRef.current = isHistory;
+      prevTabRef.current = activeTab;
 
       gsap.set(blobRef.current, {
         x: targetLeft,
@@ -198,9 +206,11 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
       return;
     }
 
-    if (prevIsHistoryRef.current === isHistory) return;
-    const movingRight = isHistory;
-    prevIsHistoryRef.current = isHistory;
+    if (prevTabRef.current === activeTab) return;
+    const prevBtn = getTargetBtn(prevTabRef.current);
+    const prevLeft = prevBtn?.offsetLeft ?? targetLeft;
+    const movingRight = targetLeft > prevLeft;
+    prevTabRef.current = activeTab;
 
     const blob = blobRef.current;
     gsap.killTweensOf(blob);
@@ -227,12 +237,12 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
       duration: 0.42,
       ease: 'elastic.out(1.15, 0.55)'
     });
-  }, [isHistory]);
+  }, [activeTab, canAccessDashboard]);
 
   // Mantener alineado ante cambios de tamaño de pantalla
   useEffect(() => {
     const handleResize = () => {
-      const targetBtn = !isHistory ? auditBtnRef.current : historyBtnRef.current;
+      const targetBtn = getTargetBtn(activeTab);
       if (!targetBtn || !blobRef.current) return;
       gsap.set(blobRef.current, {
         x: targetBtn.offsetLeft,
@@ -243,7 +253,9 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isHistory]);
+  }, [activeTab]);
+
+  const isAuditActive = activeTab === 'audit' || activeTab === 'summary';
 
   return (
     <div
@@ -261,8 +273,8 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
         ref={auditBtnRef}
         type="button"
         role="tab"
-        aria-selected={!isHistory}
-        className={`switch-option-btn ${!isHistory ? 'active' : ''}`}
+        aria-selected={isAuditActive}
+        className={`switch-option-btn ${isAuditActive ? 'active' : ''}`}
         onClick={() => onTabChange('audit')}
         title="Auditoría en curso"
       >
@@ -274,8 +286,8 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
         ref={historyBtnRef}
         type="button"
         role="tab"
-        aria-selected={isHistory}
-        className={`switch-option-btn ${isHistory ? 'active' : ''}`}
+        aria-selected={activeTab === 'history'}
+        className={`switch-option-btn ${activeTab === 'history' ? 'active' : ''}`}
         onClick={() => onTabChange('history')}
         title="Historial de auditorías"
       >
@@ -285,6 +297,21 @@ export const LavaViewSwitch: React.FC<LavaViewSwitchProps> = ({
           <span className="switch-badge">{historyCount}</span>
         )}
       </button>
+
+      {canAccessDashboard && (
+        <button
+          ref={dashBtnRef}
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'dashboard'}
+          className={`switch-option-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => onTabChange('dashboard')}
+          title="Dashboard de auditorías"
+        >
+          <LayoutDashboard size={15} />
+          <span>Dashboard</span>
+        </button>
+      )}
     </div>
   );
 };

@@ -25,7 +25,8 @@ import {
   Pencil,
   Users,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  History
 } from 'lucide-react';
 import { EditAuditModal } from './EditAuditModal';
 import { CustomDateRangePicker } from './CustomDateRangePicker';
@@ -296,6 +297,12 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
         <div>
           <h2 className="section-title">Historial de Auditorías</h2>
           <p className="section-subtitle">Consultá los informes operativos anteriores guardados en el sistema.</p>
+        </div>
+        <div className="history-count-info" title={`${records.length} auditorías guardadas en total`}>
+          <History size={16} className="history-count-info-icon" />
+          <span className="history-count-info-text">
+            {records.length} {records.length === 1 ? 'registro' : 'registros'}
+          </span>
         </div>
       </div>
 

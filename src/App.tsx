@@ -13,6 +13,7 @@ import { VerdictCard } from './components/VerdictCard';
 import { DeviationsList } from './components/DeviationsList';
 import { ActionToolbar } from './components/ActionToolbar';
 import { HistorySection } from './components/HistorySection';
+import { DashboardSection } from './components/DashboardSection';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { PhotoLightbox } from './components/PhotoLightbox';
 import { AuditCharts } from './components/AuditCharts';
@@ -498,6 +499,14 @@ export function App() {
               onCopyText={handleCopyText}
               onViewPhoto={setLightboxSrc}
               flashMessage={flashMessage}
+            />
+          </div>
+        )}
+
+        {activeTab === 'dashboard' && (
+          <div ref={tabContentRef} className="dashboard-tab-content">
+            <DashboardSection
+              records={records}
             />
           </div>
         )}

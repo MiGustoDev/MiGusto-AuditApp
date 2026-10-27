@@ -1,11 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, LogOut, User as UserIcon, KeyRound, ChevronDown, ShieldCheck, Lock } from 'lucide-react';
+import { ClipboardCheck, History, Check, Edit3, Menu, X, Store, LogOut, User as UserIcon, KeyRound, ChevronDown, ShieldCheck, Lock, LayoutDashboard } from 'lucide-react';
 import { getSegments } from '../data/segments';
 import { AuditSummary } from '../types/audit';
-import { UserProfile, getUserAvatarUrl } from '../lib/auth';
+import { UserProfile, getUserAvatarUrl, canUserAccessDashboard } from '../lib/auth';
 import { LavaModeSwitcher, LavaViewSwitch } from './LavaSwitcher';
 
-export type ActiveTab = 'audit' | 'summary' | 'history';
+export type ActiveTab = 'audit' | 'summary' | 'history' | 'dashboard';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -164,24 +164,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          {/* Center: When in Historial, show sleek history count badge. When in Auditoría, show Mode Switcher (Normal / Experience) */}
-          {activeTab === 'history' ? (
+          {/* Center: When in Auditoría, show Mode Switcher (Normal / Experience) */}
+          {activeTab !== 'history' && onModeChange && (
             <div className="header-center-mode-wrap">
-              <div className="header-history-badge" title={`${historyCount} auditorías registradas en el historial`}>
-                <History size={13} className="header-history-badge-icon" />
-                <span className="header-history-badge-num">{historyCount}</span>
-                <span className="header-history-badge-label">{historyCount === 1 ? 'registro' : 'registros'}</span>
-              </div>
+              <LavaModeSwitcher
+                auditMode={auditMode || 'normal'}
+                onModeChange={onModeChange}
+              />
             </div>
-          ) : (
-            onModeChange && (
-              <div className="header-center-mode-wrap">
-                <LavaModeSwitcher
-                  auditMode={auditMode || 'normal'}
-                  onModeChange={onModeChange}
-                />
-              </div>
-            )
           )}
 
           {/* Right Section: Mobile Hamburger Menu & Desktop Switch */}
@@ -197,12 +187,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               {(deviationsCount > 0 || historyCount > 0) && <span className="menu-has-badge-dot" />}
             </button>
 
-            {/* Desktop Navigation: Switch Segmentado Auditoría / Historial con efecto Lámpara de Lava */}
+            {/* Desktop Navigation: Switch Segmentado Auditoría / Historial / Dashboard con efecto Lámpara de Lava */}
             <div className="desktop-header-actions">
               <LavaViewSwitch
                 activeTab={activeTab}
                 onTabChange={onTabChange}
                 historyCount={historyCount}
+                canAccessDashboard={canUserAccessDashboard(currentUser ?? null)}
               />
 
               {/* User Profile & Dropdown Trigger */}
@@ -430,6 +421,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="side-badge neutral">{historyCount}</span>
                 )}
               </button>
+
+              {canUserAccessDashboard(currentUser ?? null) && (
+                <button
+                  type="button"
+                  className={`side-menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavClick('dashboard')}
+                >
+                  <div className="side-menu-item-left">
+                    <LayoutDashboard size={18} />
+                    <span>Dashboard</span>
+                  </div>
+                </button>
+              )}
             </div>
 
             {currentUser && (
