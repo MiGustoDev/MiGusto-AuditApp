@@ -8472,6 +8472,89 @@ html, body {
   margin: 0;
 }
 
+/* Container for Audited Store Cards (Críticas, Para revisión, OK) */
+.dash-audits-card {
+  padding: 24px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .dash-audits-card {
+    padding: 16px;
+  }
+}
+
+.dash-audits-card .dash-status-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 0;
+}
+
+.dash-audits-card .dash-store-card {
+  background: var(--surface-2);
+}
+
+.dash-audits-card .dash-store-card:hover {
+  background: var(--surface-3);
+  border-color: var(--line-strong);
+}
+
+.dash-group-divider {
+  height: 1px;
+  background: var(--line);
+  width: 100%;
+  margin-top: 24px;
+}
+
+/* Unified Bottom Container Card: Sin Auditar y Rendimiento por Supervisora */
+.dash-bottom-card {
+  padding: 24px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .dash-bottom-card {
+    padding: 16px;
+    gap: 18px;
+  }
+}
+
+.dash-bottom-card .dash-inner-divider {
+  height: 1px;
+  background: var(--line);
+  width: 100%;
+}
+
+.dash-bottom-card .dash-none-chip {
+  background: var(--surface-2);
+}
+
+.dash-bottom-card .dash-group-header {
+  margin-bottom: 12px;
+}
+
+.dash-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
 /* Supervisor Table */
 .dash-table-card {
   padding: 6px;

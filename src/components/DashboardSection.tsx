@@ -14,13 +14,13 @@ interface DashboardSectionProps {
 }
 
 const SUPERVISOR_COLORS: Record<string, string> = {
-  'p-damaris': '#e0687c',
-  'p-evelyn': '#f5cb4f',
-  'p-wanda': '#ff9d7f',
-  'p-selene': '#4fd8e3',
-  'p-sasha': '#c6a2ff',
-  'p-lidya': '#f07acb',
-  'p-martin': '#82b2ff'
+  'p-damaris': '#f472b6', // Rosa
+  'p-evelyn': '#a855f7',  // Morado
+  'p-wanda': '#38bdf8',   // Celeste
+  'p-selene': '#2dd4bf',  // Turquesa
+  'p-sasha': '#818cf8',   // Índigo
+  'p-lidya': '#c084fc',   // Violeta claro
+  'p-martin': '#60a5fa'   // Azul
 };
 
 const DEFAULT_SUP_COLOR = '#3b82f6';
@@ -282,6 +282,16 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
 
   // Filtered stores to display
   const displayedGroups = groups.filter(g => dashFilter === 'all' || dashFilter === g.key);
+
+  const auditedGroups = useMemo(() => {
+    return displayedGroups.filter(g => g.key !== 'none');
+  }, [displayedGroups]);
+
+  const noneItems = useMemo(() => {
+    return storeStatusList
+      .filter(x => x.status === 'none')
+      .sort((a, b) => a.tienda.name.localeCompare(b.tienda.name));
+  }, [storeStatusList]);
 
   const PERIOD_OPTIONS = [
     { id: 'mes', label: 'Este mes' },
@@ -560,178 +570,209 @@ export const DashboardSection: React.FC<DashboardSectionProps> = ({ records, onS
         )}
       </section>
 
-      {/* Store Cards by Status */}
-      <div className="dash-status-sections">
-        {displayedGroups.map(group => {
-          const items = storeStatusList
-            .filter(x => x.status === group.key)
-            .sort((a, b) => {
-              if (group.key === 'none') return a.tienda.name.localeCompare(b.tienda.name);
-              return Number(a.last?.total || 0) - Number(b.last?.total || 0);
-            });
+      {/* Contenedor Medio: Tiendas Auditadas (Críticas, Para revisión, OK) */}
+      {auditedGroups.length > 0 && dashFilter !== 'none' && (
+        <section className="dash-audits-card card" aria-label="Tiendas auditadas por estado">
+          <div className="dash-status-sections">
+            {auditedGroups.map((group, gIdx) => {
+              const items = storeStatusList
+                .filter(x => x.status === group.key)
+                .sort((a, b) => Number(a.last?.total || 0) - Number(b.last?.total || 0));
 
-          if (!items.length) {
-            if (dashFilter === group.key) {
+              if (!items.length) {
+                if (dashFilter === group.key) {
+                  return (
+                    <div key={group.key} className="dash-group-section">
+                      <div className="dash-group-header">
+                        <h3 style={{ color: group.color }}>{group.label}</h3>
+                        <span className="dash-group-empty">ninguna</span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }
+
               return (
                 <div key={group.key} className="dash-group-section">
                   <div className="dash-group-header">
                     <h3 style={{ color: group.color }}>{group.label}</h3>
-                    <span className="dash-group-empty">ninguna</span>
+                    <span className="dash-group-count num">
+                      {items.length} {items.length === 1 ? 'tienda' : 'tiendas'}
+                    </span>
                   </div>
+
+                  <div className="dash-stores-grid">
+                    {items.map(x => {
+                      const r = x.last!;
+                      const devs = (r.desvios || [])
+                        .slice()
+                        .sort((a, b) => (b.ideal - b.real) - (a.ideal - a.real))
+                        .slice(0, 3);
+
+                      const statusClass = group.key;
+
+                      return (
+                        <div key={x.tienda.id} className={`dash-store-card ${statusClass}`}>
+                          <div className="dash-store-card-head">
+                            <div>
+                              <div className="dash-store-name">
+                                {x.tienda.name}
+                                {(x.tienda.tags || []).map(tag => (
+                                  <span key={tag} className="tag-mini">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="dash-store-sup">
+                                <i className="dash-dot" style={{ background: supColorById(x.tienda.sup) }} />
+                                {supNameById(x.tienda.sup)}
+                              </div>
+                            </div>
+
+                            <div className={`dash-store-score num ${statusClass}`}>
+                              {f2(r.total)}
+                            </div>
+                          </div>
+
+                          <div className="dash-store-meta num">
+                            <span>{fmtDate(r.fecha)}</span>
+                            <span>·</span>
+                            <span>{r.auditMode === 'experience' ? '✨ Experience' : 'Normal'}</span>
+                            <span>·</span>
+                            <span>{r.auditor || 'Sin auditor'}</span>
+                            {(r as any).critico && (
+                              <b style={{ color: 'var(--bad)', marginLeft: '4px' }}>· falla ítem 2.6</b>
+                            )}
+                            {!r.completa && (
+                              <span className="tag-mini warn" style={{ marginLeft: '4px' }}>
+                                Incompleta
+                              </span>
+                            )}
+                            {x.auditCount > 1 && (
+                              <span style={{ color: 'var(--fg-muted)', marginLeft: '4px' }}>
+                                ({x.auditCount} auditorías)
+                              </span>
+                            )}
+                          </div>
+
+                          {devs.length > 0 && group.key !== 'ok' && (
+                            <ul className="dash-store-devs">
+                              {devs.map((d, dIdx) => (
+                                <li key={dIdx}>
+                                  <b>{d.n}</b> {d.texto.length > 68 ? `${d.texto.slice(0, 68)}…` : d.texto}{' '}
+                                  <span className="num" style={{ color: 'var(--fg-muted)' }}>
+                                    ({f2(d.real)}/{f2(d.ideal)})
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          <div className="dash-store-actions">
+                            <button
+                              type="button"
+                              className="btn-dash-open"
+                              onClick={() => {
+                                if (onSelectAudit) onSelectAudit(r);
+                                else setInspectAudit(r);
+                              }}
+                            >
+                              Ver auditoría
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {gIdx < auditedGroups.length - 1 && <div className="dash-group-divider" />}
                 </div>
               );
-            }
-            return null;
-          }
+            })}
+          </div>
+        </section>
+      )}
 
-          return (
-            <div key={group.key} className="dash-group-section">
+      {/* Contenedor Unificado: Sin Auditar y Rendimiento por Supervisora */}
+      {((dashFilter === 'all' || dashFilter === 'none') || supervisorStats.length > 0) && (
+        <section className="dash-bottom-card card" aria-label="Sin auditar y rendimiento por supervisora">
+          {/* Bloque: Sin Auditar */}
+          {(dashFilter === 'all' || dashFilter === 'none') && (
+            <div className="dash-group-section" style={{ marginBottom: 0 }}>
               <div className="dash-group-header">
-                <h3 style={{ color: group.color }}>{group.label}</h3>
+                <h3 style={{ color: 'var(--fg-muted)' }}>SIN AUDITAR</h3>
                 <span className="dash-group-count num">
-                  {items.length} {items.length === 1 ? 'tienda' : 'tiendas'}
+                  {noneItems.length} {noneItems.length === 1 ? 'tienda' : 'tiendas'}
                 </span>
               </div>
 
-              {group.key === 'none' ? (
+              {noneItems.length === 0 ? (
+                <span className="dash-group-empty">ninguna</span>
+              ) : (
                 <div className="dash-none-grid">
-                  {items.map(x => (
+                  {noneItems.map(x => (
                     <span key={x.tienda.id} className="dash-none-chip">
                       <i className="dash-dot" style={{ background: supColorById(x.tienda.sup) }} />
                       {x.tienda.name}
                     </span>
                   ))}
                 </div>
-              ) : (
-                <div className="dash-stores-grid">
-                  {items.map(x => {
-                    const r = x.last!;
-                    const devs = (r.desvios || [])
-                      .slice()
-                      .sort((a, b) => (b.ideal - b.real) - (a.ideal - a.real))
-                      .slice(0, 3);
-
-                    const statusClass = group.key;
-
-                    return (
-                      <div key={x.tienda.id} className={`dash-store-card ${statusClass}`}>
-                        <div className="dash-store-card-head">
-                          <div>
-                            <div className="dash-store-name">
-                              {x.tienda.name}
-                              {(x.tienda.tags || []).map(tag => (
-                                <span key={tag} className="tag-mini">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                            <div className="dash-store-sup">
-                              <i className="dash-dot" style={{ background: supColorById(x.tienda.sup) }} />
-                              {supNameById(x.tienda.sup)}
-                            </div>
-                          </div>
-
-                          <div className={`dash-store-score num ${statusClass}`}>
-                            {f2(r.total)}
-                          </div>
-                        </div>
-
-                        <div className="dash-store-meta num">
-                          <span>{fmtDate(r.fecha)}</span>
-                          <span>·</span>
-                          <span>{r.auditMode === 'experience' ? '✨ Experience' : 'Normal'}</span>
-                          <span>·</span>
-                          <span>{r.auditor || 'Sin auditor'}</span>
-                          {(r as any).critico && (
-                            <b style={{ color: 'var(--bad)', marginLeft: '4px' }}>· falla ítem 2.6</b>
-                          )}
-                          {!r.completa && (
-                            <span className="tag-mini warn" style={{ marginLeft: '4px' }}>
-                              Incompleta
-                            </span>
-                          )}
-                          {x.auditCount > 1 && (
-                            <span style={{ color: 'var(--fg-muted)', marginLeft: '4px' }}>
-                              ({x.auditCount} auditorías)
-                            </span>
-                          )}
-                        </div>
-
-                        {devs.length > 0 && group.key !== 'ok' && (
-                          <ul className="dash-store-devs">
-                            {devs.map((d, dIdx) => (
-                              <li key={dIdx}>
-                                <b>{d.n}</b> {d.texto.length > 68 ? `${d.texto.slice(0, 68)}…` : d.texto}{' '}
-                                <span className="num" style={{ color: 'var(--fg-muted)' }}>
-                                  ({f2(d.real)}/{f2(d.ideal)})
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-
-                        <div className="dash-store-actions">
-                          <button
-                            type="button"
-                            className="btn-dash-open"
-                            onClick={() => {
-                              if (onSelectAudit) onSelectAudit(r);
-                              else setInspectAudit(r);
-                            }}
-                          >
-                            Ver auditoría
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               )}
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      {/* Por Supervisora Table */}
-      <div className="dash-section-divider">
-        <h3 className="dash-sub-heading">Rendimiento por Supervisora</h3>
-      </div>
+          {(dashFilter === 'all' || dashFilter === 'none') && supervisorStats.length > 0 && (
+            <div className="dash-inner-divider" />
+          )}
 
-      <div className="tbl-wrap card dash-table-card">
-        <table className="dash-sup-table">
-          <thead>
-            <tr>
-              <th style={{ textAlign: 'left' }}>Supervisora</th>
-              <th>Tiendas</th>
-              <th>Auditadas</th>
-              <th>Críticas</th>
-              <th>Revisión</th>
-              <th>OK</th>
-              <th>Sin auditar</th>
-              <th>Promedio</th>
-            </tr>
-          </thead>
-          <tbody>
-            {supervisorStats.map(row => (
-              <tr key={row.sup.id}>
-                <td style={{ textAlign: 'left', fontWeight: 600 }}>
-                  <i className="dash-dot" style={{ background: supColorById(row.sup.id) }} />
-                  {row.sup.name}
-                </td>
-                <td className="num">{row.total}</td>
-                <td className="num">{row.audited}</td>
-                <td className={`num ${row.crit ? 'c-bad' : ''}`}>{row.crit}</td>
-                <td className={`num ${row.rev ? 'c-warn' : ''}`}>{row.rev}</td>
-                <td className={`num ${row.ok ? 'c-ok' : ''}`}>{row.ok}</td>
-                <td className="num" style={{ color: 'var(--fg-muted)' }}>{row.none}</td>
-                <td className="num" style={{ fontWeight: 700 }}>
-                  {row.avg != null ? f2(row.avg) : '–'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          {/* Bloque: Rendimiento por Supervisora */}
+          {supervisorStats.length > 0 && (
+            <div className="dash-supervisor-section">
+              <div className="dash-group-header">
+                <h3 className="dash-sub-heading" style={{ color: 'var(--fg)' }}>
+                  Rendimiento por Supervisora
+                </h3>
+              </div>
+
+              <div className="tbl-wrap dash-table-wrap">
+                <table className="dash-sup-table">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>Supervisora</th>
+                      <th>Tiendas</th>
+                      <th>Auditadas</th>
+                      <th>Críticas</th>
+                      <th>Revisión</th>
+                      <th>OK</th>
+                      <th>Sin auditar</th>
+                      <th>Promedio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supervisorStats.map(row => (
+                      <tr key={row.sup.id}>
+                        <td style={{ textAlign: 'left', fontWeight: 600 }}>
+                          <i className="dash-dot" style={{ background: supColorById(row.sup.id) }} />
+                          {row.sup.name}
+                        </td>
+                        <td className="num">{row.total}</td>
+                        <td className="num">{row.audited}</td>
+                        <td className={`num ${row.crit ? 'c-bad' : ''}`}>{row.crit}</td>
+                        <td className={`num ${row.rev ? 'c-warn' : ''}`}>{row.rev}</td>
+                        <td className={`num ${row.ok ? 'c-ok' : ''}`}>{row.ok}</td>
+                        <td className="num" style={{ color: 'var(--fg-muted)' }}>{row.none}</td>
+                        <td className="num" style={{ fontWeight: 700 }}>
+                          {row.avg != null ? f2(row.avg) : '–'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Modal to inspect audit details */}
       {inspectAudit && (
